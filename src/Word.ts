@@ -70,10 +70,13 @@ export class Word extends BasicWord {
 
         if (mindex >= 0) this.meaning = this.possMeanings[mindex];
         if (tindex >= 0) this.translation = this.possTranslations[tindex];
-        this.isPendingSel = false;
+        if (mindex >= 0 || tindex >= 0) this.isPendingSel = false;
     }
 
-    public finalized(limit = 5, senCharLimit = 150): FinalizedWord {
+    public finalized(mindex?: number, tindex?: number, limit = 5,
+                     senCharLimit = 150): FinalizedWord {
+        this.select(mindex, tindex);
+
         if (this.isPendingSel) {
             throw new Error('Word cannot be finalized before selection!');
         }
