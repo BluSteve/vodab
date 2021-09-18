@@ -28,12 +28,17 @@ export class Anki implements CardDatabase {
             this.instances.set(deckName, new this(deckName));
         }
 
-        const deckNames: string[] = (await axios.post(ankiurl, {
-            'action': 'deckNames', version
-        })).data.result;
+        try {
+            const deckNames: string[] = (await axios.post(ankiurl, {
+                'action': 'deckNames', version
+            })).data.result;
 
-        if (!deckNames.includes(deckName)) {
-            await this.createDeck(deckName);
+            if (!deckNames.includes(deckName)) {
+                await this.createDeck(deckName);
+            }
+        } catch (e) {
+            if (e.message.includes('ECONNREFUSED')) throw new Error(
+                'Anki not started!');
         }
 
         return this.instances.get(deckName);
