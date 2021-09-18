@@ -8,7 +8,7 @@ import {Wordnik} from "./services/Wordnik";
 import {Word} from "./Word";
 
 async function main() {
-    const raw = 'train';
+    const raw = 'imbroglio';
 
     const fdapi = FreeDictionaryAPI.getInstance();
     const gt = GoogleTranslate.getInstance(Language.en, Language.zh);
@@ -33,7 +33,7 @@ async function main() {
     // await anki.addAll([card]);
     // await anki.addAll(cards);
 
-    console.log(toCard(a, Target.Anki));
+    console.log(toCard(a, Target.Anki).Back);
 }
 
 main().then();

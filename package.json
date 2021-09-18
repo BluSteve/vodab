@@ -10,6 +10,7 @@
     "dotenv": "^10.0.0",
     "firebase": "^8.9.1",
     "firebase-admin": "^9.11.0",
+    "js-beautify": "^1.14.0",
     "js-levenshtein": "^1.1.6",
     "opencc-js": "^1.0.3",
     "turndown": "^7.1.1",
