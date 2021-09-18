@@ -21,3 +21,8 @@ export function arrayUnique(a: string[], fuzzy?: boolean) {
 export function printAll(a) {
     console.log(JSON.stringify(a, null, 2));
 }
+
+export function sortAlphabetical(strs: string[]) {
+    return strs.sort((a, b) => a.localeCompare(b, undefined,
+        {sensitivity: 'base'}));
+}
