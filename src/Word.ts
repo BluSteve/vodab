@@ -1,5 +1,4 @@
-import {WordError, WordService} from "./services/WordService";
-import {printAll} from "./utils/Utils";
+import {WordService} from "./services/WordService";
 
 export class Meaning {
     public def?: string;
@@ -22,8 +21,12 @@ export class SentencePair {
 
 export class BasicWord {
     public text: string;
-    public meaning: Meaning;
-    public translation?: Translation;
+    public meaning?: Meaning = {};
+    public translation?: Translation = {};
+}
+
+export class FinalizedWord extends BasicWord {
+    public manualPos: string;
 }
 
 export class Word extends BasicWord {
@@ -56,19 +59,30 @@ export class Word extends BasicWord {
                 console.log(service.constructor.name, elapsed);
             }
         }
-
         return word;
     }
 
-    public finalized(limit = 5, senCharLimit = 150): BasicWord {
+    public select(mindex?: number, tindex?: number): void {
+        if (mindex >= this.possMeanings.length ||
+            tindex >= this.possTranslations.length) {
+            throw new Error('Invalid meaning/translation selection!');
+        }
+
+        if (mindex >= 0) this.meaning = this.possMeanings[mindex];
+        if (tindex >= 0) this.translation = this.possTranslations[tindex];
+        this.isPendingSel = false;
+    }
+
+    public finalized(limit = 5, senCharLimit = 150): FinalizedWord {
         if (this.isPendingSel) {
             throw new Error('Word cannot be finalized before selection!');
         }
 
-        const wcopy: BasicWord = {
+        const wCopy: FinalizedWord = {
             text: this.text,
             meaning: this.meaning,
-            translation: this.translation
+            translation: this.translation,
+            manualPos: this.manualPos
         }
 
         const filterSens = (sens: any[], len: Function) => {
@@ -84,50 +98,23 @@ export class Word extends BasicWord {
             return temp;
         }
 
-        if (wcopy.meaning) {
-            if (wcopy.meaning.sens) {
-                wcopy.meaning.sens =
-                    filterSens(wcopy.meaning.sens, i => i.length);
+        if (wCopy.meaning) {
+            if (wCopy.meaning.sens) {
+                wCopy.meaning.sens =
+                    filterSens(wCopy.meaning.sens, i => i.length);
             }
 
-            if (wcopy.meaning.syns) {
-                wcopy.meaning.syns =
-                    wcopy.meaning.syns.slice(0, limit);
+            if (wCopy.meaning.syns) {
+                wCopy.meaning.syns =
+                    wCopy.meaning.syns.slice(0, limit);
             }
         }
 
-        if (wcopy.translation && wcopy.translation.transSens) {
-            wcopy.translation.transSens =
-                filterSens(wcopy.translation.transSens, i => i.src.length);
+        if (wCopy.translation && wCopy.translation.transSens) {
+            wCopy.translation.transSens =
+                filterSens(wCopy.translation.transSens, i => i.src.length);
         }
 
-        return wcopy;
-    }
-
-    public select(mindex: number, tindex: number): void {
-        this.meaning = this.possMeanings[mindex];
-        this.translation = this.possTranslations[tindex];
-        this.isPendingSel = false;
-    }
-
-    public getFront(): string {
-        return this.manualPos ? this.text + ' (' + this.manualPos + ')' :
-            this.text;
-    }
-
-    public getBack(): string {
-        let Back: string = '';
-        if (this.meaning.ipa) Back += this.meaning.ipa + '<br><br>';
-        if (this.manualPos) Back += this.manualPos + '<br><br>';
-        Back += this.meaning.def;
-        if (this.translation) Back += '<br><br>' + this.translation.trans;
-        if (this.meaning.sens.length > 0) Back +=
-            '<br><br><ul><li>' + this.meaning.sens.join('</li><li>') +
-            '</li></ul>';
-        if (this.meaning.sens.length === 0) Back += '<br>';
-        if (this.meaning.syns.length > 0) Back +=
-            '<br>' + this.meaning.syns.slice(0, 5).join(', ');
-        if (this.meaning.ety) Back += '<br><br>' + this.meaning.ety;
-        return Back;
+        return wCopy;
     }
 }
