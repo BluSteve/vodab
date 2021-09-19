@@ -1,4 +1,4 @@
-import {Anki, ANKI_OTHERS, ANKI_WORDS} from '../backend/Anki';
+import {Anki, ANKI_WORDS} from '../backend/Anki';
 import {FinalizedWord, MT, ServiceRequest, Word} from '../../api/Word';
 import {adminId, discordToken} from '../Config';
 import {stringListify} from "../../utils/Utils";
@@ -7,7 +7,8 @@ import {Linguee} from "../../api/services/Linguee";
 import {Wordnik} from "../../api/services/Wordnik";
 import {FreeDictionaryAPI} from "../../api/services/FreeDictionaryAPI";
 import {Target, toString} from "./WordConverter";
-import {DatabaseError} from "../backend/CardDatabase";
+import {Card, CardDatabase, DatabaseError} from "../backend/CardDatabase";
+import {MessageAttachment} from "discord.js";
 
 const {Client} = require('discord.js');
 const TurndownService = require('turndown');
@@ -125,29 +126,242 @@ class MessageHandler {
     message: any;
     send: Function;
     content: string;
-    userId: string;
     command: string;
-    params: string;
-    readingMode: boolean;
+    words: string;
+    raw: string[]
+    user: User;
 
     constructor(message, user: User) {
         this.message = message;
         this.content = message.content.trim();
-        this.userId = message.author.id;
+        this.user = user;
         this.send = content => message.channel.send(content);
-        this.readingMode = user.readingMode;
 
         if (this.content.startsWith('!')) {
             this.command = this.content.split(' ')[0].substr(1);
-            this.params = this.content.split(' ').slice(1).join(' ');
+            this.words = this.content.split(' ').slice(1).join(' ');
         }
         else if (readingMode) {
-            this.params = this.content;
+            this.words = this.content;
         }
+
+        this.raw = stringListify(this.words, ',,');
     }
 
     async handleMessage() {
+        if (this.command === 'ping') {
+            await this.send(`pong! version=${version}`);
+        }
 
+        else {
+            if (this.command === 'r') {
+                await this.toggleReadingMode();
+            }
+
+            else if (/^l[wo]$/.test(this.command)) {
+                await this.listWords();
+            }
+
+            else if (/^down[wo]$/.test(this.command)) {
+                await this.downloadWords();
+            }
+
+            else {
+                for (const rawWord of this.raw) {
+                    if (/^de?$/.test(this.command)) {
+                        await this.defineWord(rawWord);
+                    }
+
+                    else if (/^f[wo]$/.test(this.command)) {
+                        await this.findWord(rawWord);
+                    }
+
+                    else if (/^wf?e?l?$/.test(this.command) || readingMode &&
+                        !this.command) {
+
+                    }
+                }
+            }
+
+
+        else
+            if (/^m[wo]f?$/.test(this.command)) {
+                let Front: string;
+                let Back: string;
+                [Front, Back] = stringListify(params, '|');
+                Front = Front.trim();
+                if (Back) Back = Back.trim().replace(/\n/g, '<br>');
+
+                const isForced = /^m[wo]f$/.test(this.command);
+                // let match = await fh.find(Front);
+                let ankiMatches: number[] = await dbase.find(Front);
+
+                if (isForced || ankiMatches.length === 0) {
+                    if (ankiMatches.length > 0) {
+                        await dbase.updateBacks(ankiMatches, Back);
+                        // await fh.updateBack(match.Front, Back)
+                        await this.send(
+                            `Back updated for "${Front}"`);
+                    }
+                    else {
+                        await dbase.add(Front, Back);
+                        // await fh.save(Front, Back)
+                        await this.send(
+                            '"' + Front + '" added successfully!');
+                    }
+
+                    await dbase.sync();
+                }
+                else {
+                    await this.send(
+                        '"' + Front + '" already exists!');
+                }
+            }
+
+
+            else if (/^del[wo]$/.test(this.command)) {
+                for (const Front of this.raw) {
+                    let ankiMatches: number[] =
+                        await dbase.find(Front);
+                    // let canDelete = await fh.delete(Front);
+                    if (ankiMatches.length === 0) {
+                        await this.send(`"${Front}" not found`);
+                    }
+                    else {
+                        await dbase.delete(ankiMatches);
+                        await this.send(
+                            `Note deleted for "${Front}"`);
+                    }
+                }
+            }
+        }
+    }
+
+    // todo change deck command
+
+    private async toggleReadingMode() {
+        this.user.readingMode = !this.user.readingMode;
+        if (readingMode) await this.send('Reading mode activated');
+        else await this.send('Reading mode deactivated');
+    }
+
+    private async defineWord(rawWord: string) {
+        const word: Word = this.command === 'de' ?
+            await toWord(rawWord, true) : await toWord(rawWord);
+
+        const mindex = word.possMeanings.length > 1 ?
+            await reactSelect(word, this.message, MT.Meaning) : 0;
+        const tindex = word.possTranslations.length > 1 ?
+            await reactSelect(word, this.message, MT.Translation) : 0;
+        const finalWord: FinalizedWord =
+            word.finalized(mindex, tindex);
+
+        await this.send(toString(finalWord, Target.Discord));
+    }
+
+    private async findWord(rawWord: string) {
+        let card = await (await this.user.getDB()).find(rawWord);
+        if (card.Back === '') {
+            await this.send(`"${rawWord}" is found but has empty definition`);
+        }
+        else {
+            let Back: string = turndownService.turndown(card.Back);
+            await this.send(`"${rawWord}":\n>>> ${Back}`);
+        }
+    }
+
+    private async listWords() {
+        let list = await (await this.user.getDB()).listFront();
+        if (list.length === 0) {
+            await this.send('Deck is empty');
+        }
+
+        let counter = 0;
+        while (counter < list.length) {
+            let msg = '```';
+            for (; counter < list.length; counter++) {
+                let toAdd = list[counter] + ',, ';
+                if (msg.length + toAdd.length < 1997) {
+                    msg += toAdd;
+                }
+                else break;
+            }
+            await this.send(msg + '```');
+        }
+    }
+
+    private async downloadWords() {
+        let list: Card[] = await (await this.user.getDB()).list();
+        let str = '';
+        for (const card of list) {
+            str += card.Front + '\t' + card.Back + '\n';
+        }
+        let attachment = new MessageAttachment(
+            Buffer.from(str, 'utf-8'), 'export.txt');
+        this.message.channel.this.send({
+            'content': `Here you go! (${list.length} notes)`,
+            files: [attachment]
+        });
+    }
+
+    private async addWord(rawWord: string) {
+        console.log(this.raw);
+
+        const word = (/^wf?el?$/.test(this.command)) ?
+            await toWord(rawWord, true) :
+            await toWord(rawWord);
+
+        const dbase = await this.user.getDB();
+
+        let matches: number[] = await dbase.find(word.getFront());
+
+        // if forced or no existing alike words
+        if (/^wfe?l?$/.test(this.command) ||
+            matches.length === 0) {
+
+            let selected = !word.isPendingSel;
+            if (!selected) {
+                // I'm feeling lucky
+                if (/^wf?l$/.test(this.command) ||
+                    readingMode &&
+                    !this.command) {
+                    word.selectMeaning(0)
+                    selected = true;
+                }
+                else selected =
+                    await reactSelect(word, message);
+            }
+
+            if (selected) {
+                if (isAdmin) await word.getMoreExamples();
+
+                await this.send(getWordOut(word));
+                if (matches.length > 0) {
+                    await dbase.updateBacks(
+                        matches,
+                        word.getBack());
+                    await this.send(
+                        `Back updated for "${word.getFront()}"`);
+                }
+                else {
+                    await dbase.add(word.getFront(),
+                        word.getBack());
+                    // await fh.save(word.getFront(),
+                    //     word.getBack());
+                    await this.send(
+                        '"' + word.getFront() +
+                        '" added successfully!');
+                }
+            }
+        }
+        else {
+            await this.send(
+                '"' + word.getFront() +
+                '" already exists!');
+        }
+
+
+        await dbase.sync();
     }
 }
 
@@ -155,10 +369,16 @@ class MessageHandler {
 class User {
     static users: Map<string, User> = new Map();
     userId: string;
+    isAdmin: boolean;
     readingMode: boolean = false;
+    deckName: string = ANKI_WORDS;
+    private db: CardDatabase | undefined; // lazy loaded on request
 
     private constructor(userId: string) {
         this.userId = userId;
+        if (userId === adminId) {
+            this.isAdmin = true;
+        }
     }
 
     static getUser(userId: string): User {
@@ -166,6 +386,16 @@ class User {
             this.users.set(userId, new this(userId));
         }
         return this.users.get(userId);
+    }
+
+    async getDB(): Promise<CardDatabase> {
+        if (!this.db) {
+            if (this.isAdmin) {
+                this.db = await Anki.getInstance(this.deckName);
+            }
+        }
+
+        return this.db;
     }
 
     async handleMessage(message): Promise<void> {
@@ -194,212 +424,7 @@ client.on('messageCreate', async (message) => {
         else return;
         console.log('command=' + command);
 
-        if (command === 'ping') {
-            await send(`pong! version=${version}`);
-        }
 
-        else {
-            let raw: string[] = stringListify(params, ',,');
-            const isWords = readingMode || !command.endsWith('o');
-            const isAdmin = adminId === userId;
-            const deckName = isWords ? ANKI_WORDS : ANKI_OTHERS;
-            let dbase = await Anki.getInstance(deckName);
-
-
-            if (command === 'r') {
-                readingMode = !readingMode;
-                if (readingMode) send('Reading mode activated');
-                else send('Reading mode deactivated');
-            }
-
-
-            else if (/^de?$/.test(command)) {
-                for (const rawWord of raw) {
-                    const word: Word = command === 'de' ?
-                        await toWord(rawWord, true) : await toWord(rawWord);
-
-                    const mindex = word.possMeanings.length > 1 ?
-                        await reactSelect(word, message, MT.Meaning) : 0;
-                    const tindex = word.possTranslations.length > 1 ?
-                        await reactSelect(word, message, MT.Translation) : 0;
-                    const finalWord: FinalizedWord =
-                        word.finalized(mindex, tindex);
-
-                    await send(toString(finalWord, Target.Discord));
-                }
-            }
-
-
-            else if (/^f[wo]$/.test(command)) {
-                for (const Front of raw) {
-                    let card = await dbase.find(Front);
-                    if (card.Back === '') {
-                        await send(
-                            `"${Front}" is found but has empty definition`);
-                    }
-                    else {
-                        let Back: string = turndownService.turndown(card.Back);
-                        await send(
-                            `"${Front}":\n>>> ${Back}`);
-                    }
-                }
-            }
-
-
-            else if (/^l[wo]$/.test(command)) {
-                let counter = 0;
-                let list = await dbase.listFront();
-                if (list.length === 0) {
-                    await send('Deck is empty');
-                }
-                while (counter < list.length) {
-                    let msg = '```';
-                    for (; counter < list.length; counter++) {
-                        let toAdd = list[counter] + ',, ';
-                        if (msg.length + toAdd.length < 1997) {
-                            msg += toAdd;
-                        }
-                        else break;
-                    }
-                    await send(msg + '```');
-                }
-            }
-
-
-                // else if (/^down[wo]$/.test(command)) {
-                //     let list: Card[] = fh.getList();
-                //     let str = '';
-                //     for (const card of list) {
-                //         str += card.Front + '\t' + card.Back + '\n';
-                //     }
-                //     let attachment = new MessageAttachment(
-                //         Buffer.from(str, 'utf-8'), 'export.txt');
-                //     message.channel.send({
-                //         'content': `Here you go! (${list.length} notes)`,
-                //         files: [attachment]
-                //     });
-            // }
-
-
-            else if (/^wf?e?l?$/.test(command) || readingMode && !command) {
-                console.log(raw);
-                for (let rawWord of raw) {
-                    const word = (/^wf?el?$/.test(command)) ?
-                        await toWord(rawWord, true) :
-                        await toWord(rawWord);
-
-                    if (word && word.isValid) {
-                        // let match = await fh.find(
-                        //     word.wordText);
-                        let ankiMatches: number[] = await dbase.find(
-                            word.getFront());
-
-                        // if forced or no existing alike words
-                        if (/^wfe?l?$/.test(command) ||
-                            ankiMatches.length === 0) {
-
-                            let selected = !word.isPendingSel;
-                            if (!selected) {
-                                // I'm feeling lucky
-                                if (/^wf?l$/.test(command) || readingMode &&
-                                    !command) {
-                                    word.selectMeaning(0)
-                                    selected = true;
-                                }
-                                else selected =
-                                    await reactSelect(word, message);
-                            }
-
-                            if (selected) {
-                                if (isAdmin) await word.getMoreExamples();
-
-                                await send(getWordOut(word));
-                                if (ankiMatches.length > 0) {
-                                    await dbase.updateBacks(
-                                        ankiMatches,
-                                        word.getBack());
-                                    await send(
-                                        `Back updated for "${word.getFront()}"`);
-                                }
-                                else {
-                                    await dbase.add(word.getFront(),
-                                        word.getBack());
-                                    // await fh.save(word.getFront(),
-                                    //     word.getBack());
-                                    await send(
-                                        '"' + word.getFront() +
-                                        '" added successfully!');
-                                }
-                            }
-                        }
-                        else {
-                            await send(
-                                '"' + word.getFront() +
-                                '" already exists!');
-                        }
-                    }
-                    else {
-                        await send(
-                            '"' + rawWord + '" is not a word!');
-                    }
-
-                    await new Promise(r => setTimeout(r, 2000));
-                }
-
-                await dbase.sync();
-            }
-
-
-            else if (/^m[wo]f?$/.test(command)) {
-                let Front: string;
-                let Back: string;
-                [Front, Back] = stringListify(params, '|');
-                Front = Front.trim();
-                if (Back) Back = Back.trim().replace(/\n/g, '<br>');
-
-                const isForced = /^m[wo]f$/.test(command);
-                // let match = await fh.find(Front);
-                let ankiMatches: number[] = await dbase.find(Front);
-
-                if (isForced || ankiMatches.length === 0) {
-                    if (ankiMatches.length > 0) {
-                        await dbase.updateBacks(ankiMatches, Back);
-                        // await fh.updateBack(match.Front, Back)
-                        await send(
-                            `Back updated for "${Front}"`);
-                    }
-                    else {
-                        await dbase.add(Front, Back);
-                        // await fh.save(Front, Back)
-                        await send(
-                            '"' + Front + '" added successfully!');
-                    }
-
-                    await dbase.sync();
-                }
-                else {
-                    await send(
-                        '"' + Front + '" already exists!');
-                }
-            }
-
-
-            else if (/^del[wo]$/.test(command)) {
-                for (const Front of raw) {
-                    let ankiMatches: number[] =
-                        await dbase.find(Front);
-                    // let canDelete = await fh.delete(Front);
-                    if (ankiMatches.length === 0) {
-                        await send(`"${Front}" not found`);
-                    }
-                    else {
-                        await dbase.delete(ankiMatches);
-                        await send(
-                            `Note deleted for "${Front}"`);
-                    }
-                }
-            }
-        }
     } catch (e) {
         console.log(e);
         if (e instanceof WordError || e instanceof DatabaseError) {
