@@ -51,7 +51,7 @@ export class Wordnik implements WordService {
                 const result: any[] = axiosResponse.data;
 
                 // sometimes the text is unavailable (api bug?)
-                word.possMeanings =
+                word.possMeanings.push(...
                     result.filter(item => item.text).map(item => {
                         let meaning: Meaning = {};
 
@@ -65,7 +65,7 @@ export class Wordnik implements WordService {
                         }
 
                         return meaning;
-                    })
+                    }));
             }
         }
 
