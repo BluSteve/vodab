@@ -1,5 +1,5 @@
 import {Anki, ANKI_OTHERS, ANKI_WORDS} from './database/Anki';
-import {FinalizedWord, MT, Word} from './Word';
+import {FinalizedWord, MT, ServiceRequest, Word} from './Word';
 import {adminId, discordToken} from './config';
 import {stringListify} from "./utils/Utils";
 import {Language, WordError, WordInfo} from "./services/WordService";
@@ -95,27 +95,29 @@ async function reactSelect(word: Word, message, mt: MT): Promise<number> {
     }
 }
 
-async function toWord(rawWord: string, extended = false) {
-    let s = rawWord.split('(');
-    let wordId = s[0].trim();
-    let pos = s.length > 1 ? s[1].split(')')[0].trim() : '';
+async function toWord(raw: string, extended = false) {
+    let s = raw.split('(');
+    let rawWordInput = s[0].trim();
+    let manualPos = s.length > 1 ? s[1].split(')')[0].trim() : undefined;
 
-    let word;
+    let serviceRequest: ServiceRequest[];
     if (extended) {
-        word = await Word.of(rawWord, new Map()
-            .set(FreeDictionaryAPI.getInstance(), WordInfo.meaning)
-            .set(Wordnik.getInstance(),
-                WordInfo.def + WordInfo.pos + WordInfo.sens)
-            .set(Linguee.getInstance(Language.en, Language.zh),
-                WordInfo.translation));
+        serviceRequest = [
+            [FreeDictionaryAPI.getInstance(),
+                WordInfo.meaning - WordInfo.sens],
+            [Wordnik.getInstance(),
+                WordInfo.def + WordInfo.pos + WordInfo.sens],
+            [Linguee.getInstance(Language.en, Language.zh),
+                WordInfo.translation + WordInfo.sens]];
     }
     else {
-        word = await Word.of(rawWord, new Map()
-            .set(FreeDictionaryAPI.getInstance(), WordInfo.meaning)
-            .set(Linguee.getInstance(Language.en, Language.zh),
-                WordInfo.translation));
+        serviceRequest = [
+            [FreeDictionaryAPI.getInstance(),
+                WordInfo.meaning - WordInfo.sens],
+            [Linguee.getInstance(Language.en, Language.zh),
+                WordInfo.translation + WordInfo.sens]];
     }
-    return word;
+    return Word.of(rawWordInput, serviceRequest, manualPos);
 }
 
 let readingMode: boolean = false;

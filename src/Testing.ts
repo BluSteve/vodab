@@ -16,12 +16,15 @@ async function main() {
     const linguee = Linguee.getInstance(Language.en, Language.fr);
     const linguee2 = Linguee.getInstance(Language.en, Language.zh);
 
-    let word = await Word.of(raw, new Map()
-        .set(fdapi, WordInfo.meaning - WordInfo.sens)
-        .set(linguee2, WordInfo.translation + WordInfo.sens));
-    printAll(word.possMeanings[0])
+    let word = await Word.of(raw, [
+        [FreeDictionaryAPI.getInstance(),
+            WordInfo.meaning],
+        [Wordnik.getInstance(),
+            WordInfo.def + WordInfo.pos + WordInfo.sens],
+        [Linguee.getInstance(Language.en, Language.zh),
+            WordInfo.translation + WordInfo.sens]]);
     let a = word.finalized(0, 0);
-    printAll(a);
+    printAll(word);
 
     const card = {'Front': 'abc', 'Back': 'def'};
     const card1 = {'Front': 'abc', 'Back': 'imposter'};

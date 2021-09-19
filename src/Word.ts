@@ -31,6 +31,8 @@ export class FinalizedWord {
     public translation?: Translation;
 }
 
+export type ServiceRequest = [WordService, number];
+
 export class Word {
     public text: string;
     public urlable: string;
@@ -46,7 +48,7 @@ export class Word {
         this.text = rawInput; // temporary until canonalization
     }
 
-    public static async of(rawWordInput: string, req: Map<WordService, number>,
+    public static async of(rawWordInput: string, req: ServiceRequest[],
                            manualPos?: string): Promise<Word> {
         const word: Word = new this(rawWordInput);
         word.manualPos = manualPos;
