@@ -1,6 +1,8 @@
 import {
+    DefinitionError,
     getValidInfo,
-    DefinitionError, InfoError, WordInfo, WordService
+    WordInfo,
+    WordService
 } from "./WordService";
 import {Meaning, Word} from "../Word";
 import axios from "axios";
@@ -48,15 +50,26 @@ export class FreeDictionaryAPI implements WordService {
             // nomenclature confusion
             for (const theirMeaning of theirMeanings) {
                 for (const theirDef of theirMeaning.definitions) {
-                    const myMeaning: Meaning = {
-                        def: theirDef.definition,
-                        ipa: result.phonetic,
-                        ety: result.origin,
-                        pos: theirMeaning.partOfSpeech,
-                        sens: [],
-                        syns: theirDef.synonyms
-                    }
-                    if (theirDef.example) myMeaning.sens.push(theirDef.example);
+                    const myMeaning: Meaning = {};
+
+                    if (infoWanted & WordInfo.def)
+                        myMeaning.def = theirDef.definition;
+
+                    if (infoWanted & WordInfo.ipa)
+                        myMeaning.ipa = result.phonetic;
+
+                    if (infoWanted & WordInfo.ety)
+                        myMeaning.ety = result.origin;
+
+                    if (infoWanted & WordInfo.pos)
+                        myMeaning.pos = theirMeaning.partOfSpeech;
+
+                    if (infoWanted & WordInfo.syns)
+                        myMeaning.syns = theirDef.synonyms;
+
+                    if (infoWanted & WordInfo.sens)
+                        myMeaning.sens = [theirDef.example];
+
                     word.possMeanings.push(myMeaning);
                 }
             }
