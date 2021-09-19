@@ -40,3 +40,11 @@ export class Pair<F, S> {
         this.second = second;
     }
 }
+
+export function stringListify(message: string, delimiter: string): string[] {
+    let res: string[] = message.split(delimiter);
+    for (let i = 0; i < res.length; i++) {
+        res[i] = res[i].trim();
+    }
+    return res;
+}
