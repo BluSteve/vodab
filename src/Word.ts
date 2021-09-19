@@ -1,4 +1,5 @@
 import {WordService} from "./services/WordService";
+import {clone} from "./utils/Utils";
 
 export class Meaning {
     public def?: string;
@@ -72,17 +73,19 @@ export class Word {
         if (mindex >= 0) wCopy.meaning = this.possMeanings[mindex];
         if (tindex >= 0) wCopy.translation = this.possTranslations[tindex];
 
+        // Function to filter sentences to be preferably below a length limit.
+        // Will default to shortest sentences if not enough to fill the quota.
         const filterSens = (sens: any[], len: Function) => {
             const temp = sens.filter(i => len(i) < senCharLimit)
                 .slice(0, limit);
-            let senCount = temp.length;
 
+            let senCount = temp.length;
             if (senCount < limit) {
                 temp.push(...sens.sort((a, b) => len(a) - len(b))
                     .slice(senCount, limit));
             }
 
-            return temp;
+            return clone(temp);
         }
 
         if (wCopy.meaning) {
@@ -93,7 +96,7 @@ export class Word {
 
             if (wCopy.meaning.syns) {
                 wCopy.meaning.syns =
-                    wCopy.meaning.syns.slice(0, limit);
+                    clone(wCopy.meaning.syns.slice(0, limit));
             }
         }
 
