@@ -9,7 +9,7 @@ import {Word} from "./Word";
 import {printAll} from "./utils/Utils";
 
 async function main() {
-    const raw = 'train';
+    const raw = 'forlorn';
 
     const fdapi = FreeDictionaryAPI.getInstance();
     const gt = GoogleTranslate.getInstance(Language.en, Language.zh);
@@ -20,8 +20,8 @@ async function main() {
     let word = await Word.of(raw, new Map()
         .set(fdapi, undefined)
         .set(linguee, WordInfo.sens));
-    printAll(word.possMeanings[2])
-    let a = word.finalized(2);
+    printAll(word.possMeanings[0])
+    let a = word.finalized(0);
     printAll(a);
 
     const card = {'Front': 'abc', 'Back': 'def'};

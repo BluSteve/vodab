@@ -19,17 +19,15 @@ export class SentencePair {
     public dst: string;
 }
 
-export class BasicWord {
+export class FinalizedWord {
     public text: string;
     public meaning?: Meaning = {};
     public translation?: Translation = {};
-}
-
-export class FinalizedWord extends BasicWord {
     public manualPos: string;
 }
 
-export class Word extends BasicWord {
+export class Word {
+    public text: string;
     public urlable: string;
     public rawInput: string;
     public manualPos: string;
@@ -37,10 +35,7 @@ export class Word extends BasicWord {
     public possTranslations: Translation[] = [];
     public possMeanings: Meaning[] = [];
 
-    public isPendingSel: boolean = true;
-
     private constructor(rawInput: string) {
-        super();
         this.rawInput = rawInput;
         this.urlable = rawInput.replace(/ /g, '%20');
         this.text = rawInput; // temporary until canonalization
@@ -62,31 +57,20 @@ export class Word extends BasicWord {
         return word;
     }
 
-    public select(mindex?: number, tindex?: number): void {
+    public finalized(mindex?: number, tindex?: number, limit = 5,
+                     senCharLimit = 150): FinalizedWord {
         if (mindex >= this.possMeanings.length ||
             tindex >= this.possTranslations.length) {
             throw new Error('Invalid meaning/translation selection!');
         }
 
-        if (mindex >= 0) this.meaning = this.possMeanings[mindex];
-        if (tindex >= 0) this.translation = this.possTranslations[tindex];
-        if (mindex >= 0 || tindex >= 0) this.isPendingSel = false;
-    }
-
-    public finalized(mindex?: number, tindex?: number, limit = 5,
-                     senCharLimit = 150): FinalizedWord {
-        this.select(mindex, tindex);
-
-        if (this.isPendingSel) {
-            throw new Error('Word cannot be finalized before selection!');
-        }
-
         const wCopy: FinalizedWord = {
             text: this.text,
-            meaning: this.meaning,
-            translation: this.translation,
             manualPos: this.manualPos
         }
+
+        if (mindex >= 0) wCopy.meaning = this.possMeanings[mindex];
+        if (tindex >= 0) wCopy.translation = this.possTranslations[tindex];
 
         const filterSens = (sens: any[], len: Function) => {
             const temp = sens.filter(i => len(i) < senCharLimit)
