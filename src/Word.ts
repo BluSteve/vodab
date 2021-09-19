@@ -22,9 +22,9 @@ export class TranslatedSentence {
 
 export class FinalizedWord {
     public text: string;
-    public meaning?: Meaning = {};
-    public translation?: Translation = {};
-    public manualPos: string;
+    public manualPos?: string;
+    public meaning?: Meaning;
+    public translation?: Translation;
 }
 
 export class Word {
@@ -65,13 +65,13 @@ export class Word {
             throw new Error('Invalid meaning/translation selection!');
         }
 
-        const wCopy: FinalizedWord = {
+        const fw: FinalizedWord = {
             text: this.text,
             manualPos: this.manualPos
         }
 
-        if (mindex >= 0) wCopy.meaning = this.possMeanings[mindex];
-        if (tindex >= 0) wCopy.translation = this.possTranslations[tindex];
+        if (mindex >= 0) fw.meaning = this.possMeanings[mindex];
+        if (tindex >= 0) fw.translation = this.possTranslations[tindex];
 
         // Function to filter sentences to be preferably below a length limit.
         // Will default to shortest sentences if not enough to fill the quota.
@@ -88,23 +88,23 @@ export class Word {
             return clone(temp);
         }
 
-        if (wCopy.meaning) {
-            if (wCopy.meaning.sens) {
-                wCopy.meaning.sens =
-                    filterSens(wCopy.meaning.sens, i => i.length);
+        if (fw.meaning) {
+            if (fw.meaning.sens) {
+                fw.meaning.sens =
+                    filterSens(fw.meaning.sens, i => i.length);
             }
 
-            if (wCopy.meaning.syns) {
-                wCopy.meaning.syns =
-                    clone(wCopy.meaning.syns.slice(0, limit));
+            if (fw.meaning.syns) {
+                fw.meaning.syns =
+                    clone(fw.meaning.syns.slice(0, limit));
             }
         }
 
-        if (wCopy.translation && wCopy.translation.transSens) {
-            wCopy.translation.transSens =
-                filterSens(wCopy.translation.transSens, i => i.src.length);
+        if (fw.translation && fw.translation.transSens) {
+            fw.translation.transSens =
+                filterSens(fw.translation.transSens, i => i.src.length);
         }
 
-        return wCopy;
+        return fw;
     }
 }
