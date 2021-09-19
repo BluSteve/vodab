@@ -7,8 +7,8 @@ import {
 } from "./WordService";
 import {Meaning, Word} from "../Word";
 import axios from "axios";
-import {wordnikToken} from "../config";
-import {arrayUnique, urlify} from "../utils/Utils";
+import {arrayUnique, urlify} from "../../utils/Utils";
+import {wordnikToken} from "../APIConfig";
 
 export class Wordnik implements WordService {
     private static instance: Wordnik;

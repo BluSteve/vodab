@@ -5,12 +5,13 @@ node_modules
 *.js
 *.js.map
 
+src/api/APIConfig.ts
 # local env files
 .env.local
 .env.*.local
-src/key.json
-src/config.ts
-src/config.js
+src/api/key.json
+src/ui/Config.ts
+src/ui/Config.js
 # Log files
 npm-debug.log*
 yarn-debug.log*

@@ -1,5 +1,5 @@
-import {FinalizedWord} from "./Word";
-import {Card} from "./database/CardDatabase";
+import {FinalizedWord} from "../../api/Word";
+import {Card} from "../backend/CardDatabase";
 
 export enum Target {
     Discord, Anki, Firebase

@@ -2,7 +2,8 @@ import {
     getValidInfo,
     Language,
     TranslationError,
-    WordInfo, WordService
+    WordInfo,
+    WordService
 } from "./WordService";
 import {Word} from "../Word";
 import {Translate} from "@google-cloud/translate/build/src/v2";

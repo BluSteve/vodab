@@ -1,10 +1,10 @@
-import {Target, toString} from "./WordConverter";
-import {FreeDictionaryAPI} from "./services/FreeDictionaryAPI";
-import {GoogleTranslate} from "./services/GoogleTranslate";
-import {Language, WordInfo} from "./services/WordService";
-import {Linguee} from "./services/Linguee";
-import {Wordnik} from "./services/Wordnik";
-import {Word} from "./Word";
+import {Target, toString} from "./ui/frontend/WordConverter";
+import {FreeDictionaryAPI} from "./api/services/FreeDictionaryAPI";
+import {GoogleTranslate} from "./api/services/GoogleTranslate";
+import {Language, WordInfo} from "./api/services/WordService";
+import {Linguee} from "./api/services/Linguee";
+import {Wordnik} from "./api/services/Wordnik";
+import {Word} from "./api/Word";
 import {printAll} from "./utils/Utils";
 
 async function main() {

@@ -1,5 +1,5 @@
 import {WordService} from "./services/WordService";
-import {clone, urlify} from "./utils/Utils";
+import {clone, urlify} from "../utils/Utils";
 
 export enum MT {
     Meaning, Translation

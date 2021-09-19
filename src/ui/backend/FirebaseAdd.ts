@@ -1,6 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore'
-import {firebaseConfig} from "../config";
+import {firebaseConfig} from "../Config";
 import {ANKI_WORDS, AnkiHandler} from "./AnkiAdd";
 import {Card} from "./CardDatabase";
 

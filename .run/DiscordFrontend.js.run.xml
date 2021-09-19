@@ -1,7 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="DiscordFrontend.js" type="NodeJSConfigurationType" nameIsGenerated="true" path-to-js-file="DiscordFrontend.js" working-dir="$PROJECT_DIR$/src">
-    <method v="2">
-      <option name="TypeScript.Before.Run" enabled="true" FAIL_ON_ERROR="true" />
-    </method>
+  <configuration default="false" name="DiscordFrontend.js"
+                 type="NodeJSConfigurationType" nameIsGenerated="true"
+                 path-to-js-file="$PROJECT_DIR$/src/ui/frontend/DiscordFrontend.js"
+                 working-dir="$PROJECT_DIR$/src">
+      <method v="2">
+          <option name="TypeScript.Before.Run" enabled="true"
+                  FAIL_ON_ERROR="true"/>
+      </method>
   </configuration>
 </component>

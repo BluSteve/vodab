@@ -1,13 +1,13 @@
-import {Anki, ANKI_OTHERS, ANKI_WORDS} from './database/Anki';
-import {FinalizedWord, MT, ServiceRequest, Word} from './Word';
-import {adminId, discordToken} from './config';
-import {stringListify} from "./utils/Utils";
-import {Language, WordError, WordInfo} from "./services/WordService";
-import {Linguee} from "./services/Linguee";
-import {Wordnik} from "./services/Wordnik";
-import {FreeDictionaryAPI} from "./services/FreeDictionaryAPI";
+import {Anki, ANKI_OTHERS, ANKI_WORDS} from '../backend/Anki';
+import {FinalizedWord, MT, ServiceRequest, Word} from '../../api/Word';
+import {adminId, discordToken} from '../Config';
+import {stringListify} from "../../utils/Utils";
+import {Language, WordError, WordInfo} from "../../api/services/WordService";
+import {Linguee} from "../../api/services/Linguee";
+import {Wordnik} from "../../api/services/Wordnik";
+import {FreeDictionaryAPI} from "../../api/services/FreeDictionaryAPI";
 import {Target, toString} from "./WordConverter";
-import {DatabaseError} from "./database/CardDatabase";
+import {DatabaseError} from "../backend/CardDatabase";
 
 const {Client} = require('discord.js');
 const TurndownService = require('turndown');
