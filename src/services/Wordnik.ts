@@ -1,11 +1,11 @@
 import {
     APILimitExceededError,
-    getValidInfo,
     DefinitionError,
+    getValidInfo,
     WordInfo,
     WordService
 } from "./WordService";
-import {Word} from "../Word";
+import {Meaning, Word} from "../Word";
 import axios from "axios";
 import {wordnikToken} from "../config";
 import {arrayUnique, urlify} from "../utils/Utils";
@@ -53,11 +53,18 @@ export class Wordnik implements WordService {
                 // sometimes the text is unavailable (api bug?)
                 word.possMeanings =
                     result.filter(item => item.text).map(item => {
-                        return {
-                            def: item.text + ' (' + item.sourceDictionary +
-                                ')',
-                            pos: item.partOfSpeech,
+                        let meaning: Meaning = {};
+
+                        if (infoWanted & WordInfo.def) {
+                            meaning.def =
+                                item.text + ' (' + item.sourceDictionary + ')';
                         }
+
+                        if (infoWanted & WordInfo.pos) {
+                            meaning.pos = item.partOfSpeech;
+                        }
+
+                        return meaning;
                     })
             }
         }
