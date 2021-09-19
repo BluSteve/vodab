@@ -18,31 +18,34 @@ export function toCard(word: FinalizedWord, target: Target): Card {
         const beautify = require('js-beautify').html;
         const DNL = ' <br><br> ';
 
-        if (word.meaning) {
+        let meaning = word.meaning;
+        let translation = word.translation;
+
+        if (meaning) {
             for (let x of
-                [word.meaning.ipa, word.meaning.pos, word.meaning.def]) {
+                [meaning.ipa, meaning.pos, meaning.def]) {
                 if (x) backBuilder.push(x);
             }
-        }
 
-        if (word.translation) {
-            if (word.translation.trans) {
-                backBuilder.push(word.translation.trans);
+        }
+        if (translation) {
+            if (translation.trans) {
+                backBuilder.push(translation.trans);
             }
         }
 
-        if (word.meaning) {
+        if (meaning) {
             // Italicizes the word, case-insensitive.
-            if (word.meaning.sens && word.meaning.sens.length > 0) {
+            if (meaning.sens && meaning.sens.length > 0) {
                 let senList = '';
 
                 senList += '<ul>';
-                for (let i = 0; i < word.meaning.sens.length; i++) {
-                    const sen = word.meaning.sens[i];
+                for (let i = 0; i < meaning.sens.length; i++) {
+                    const sen = meaning.sens[i];
                     senList += '<li> ';
                     senList += sen.replace(new RegExp(word.text, 'gi'),
                         a => `<i> ${a} </i>`);
-                    if (i < word.meaning.sens.length - 1) senList += DNL;
+                    if (i < meaning.sens.length - 1) senList += DNL;
                     senList += ' </li>';
                 }
                 senList += '</ul>';
@@ -51,14 +54,14 @@ export function toCard(word: FinalizedWord, target: Target): Card {
             }
         }
 
-        if (word.translation) {
-            if (word.translation.transSens) {
+        if (translation) {
+            if (translation.transSens) {
                 let table: string = '';
 
                 table += '<style> table, th, td {border: 1px solid black; ' +
                     'border-collapse: collapse;}</style>'
                 table += '<table>';
-                for (const transSens of word.translation.transSens) {
+                for (const transSens of translation.transSens) {
                     table += '<tr>';
                     table += `<td> ${transSens.src} </td>`
                     table += `<td> ${transSens.dst} </td>`
@@ -70,11 +73,11 @@ export function toCard(word: FinalizedWord, target: Target): Card {
             }
         }
 
-        if (word.meaning) {
-            if (word.meaning.syns.length > 0) backBuilder.push(
-                word.meaning.syns.slice(0, 5).join(', '));
+        if (meaning) {
+            if (meaning.syns && meaning.syns.length > 0) backBuilder.push(
+                meaning.syns.slice(0, 5).join(', '));
 
-            if (word.meaning.ety) backBuilder.push(word.meaning.ety);
+            if (meaning.ety) backBuilder.push(meaning.ety);
         }
 
         Back = beautify(backBuilder.join(DNL));
@@ -93,40 +96,43 @@ export function toString(word: FinalizedWord, target: Target): string {
         const strBuilder: string[] = [];
         let firstLine = '**' + word.text + '**';
 
-        if (word.meaning) {
-            if (word.meaning.pos) firstLine += '  *' + word.meaning.pos + '*';
+        let meaning = word.meaning;
+        let translation = word.translation;
+
+        if (meaning) {
+            if (meaning.pos) firstLine += '  *' + meaning.pos + '*';
         }
         strBuilder.push(firstLine);
 
-        if (word.meaning) {
-            if (word.meaning.ipa) strBuilder.push(
-                'Pronunciation: ' + word.meaning.ipa);
-            strBuilder.push('Definition: *' + word.meaning.def + '*');
+        if (meaning) {
+            if (meaning.ipa) strBuilder.push(
+                'Pronunciation: ' + meaning.ipa);
+            strBuilder.push('Definition: *' + meaning.def + '*');
 
-            if (word.meaning.sens.length > 0) strBuilder.push(
-                'Examples: \n' + word.meaning.sens.map(s => {
+            if (meaning.sens.length > 0) strBuilder.push(
+                'Examples: \n' + meaning.sens.map(s => {
                     return `- *${s}*`
                 }).join('\n'));
         }
 
-        if (word.translation) {
-            if (word.translation.trans) strBuilder.push(
-                'Translation: ' + word.translation.trans);
-            if (word.translation.transSens &&
-                word.translation.transSens.length > 0) {
+        if (translation) {
+            if (translation.trans) strBuilder.push(
+                'Translation: ' + translation.trans);
+            if (translation.transSens &&
+                translation.transSens.length > 0) {
                 strBuilder.push('Translated sentences: \n' +
-                    word.translation.transSens.map(s => {
+                    translation.transSens.map(s => {
                         return `- ${s.src}\n- ${s.dst}`;
                     }).join('\n\n'));
             }
         }
 
-        if (word.meaning) {
-            if (word.meaning.syns.length > 0) strBuilder.push(
-                'Synonyms: *' + word.meaning.syns.join(", ") + '*');
+        if (meaning) {
+            if (meaning.syns && meaning.syns.length > 0) strBuilder.push(
+                'Synonyms: *' + meaning.syns.join(", ") + '*');
 
-            if (word.meaning.ety) strBuilder.push(
-                'Etymology: *' + word.meaning.ety + '*');
+            if (meaning.ety) strBuilder.push(
+                'Etymology: *' + meaning.ety + '*');
         }
 
         str += strBuilder.join('\n\n');
