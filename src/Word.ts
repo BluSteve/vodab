@@ -70,6 +70,8 @@ export class Word {
             manualPos: this.manualPos
         }
 
+        if (mindex === undefined) mindex = 0;
+        if (tindex === undefined) tindex = 0;
         if (mindex >= 0) fw.meaning = this.possMeanings[mindex];
         if (tindex >= 0) fw.translation = this.possTranslations[tindex];
 
