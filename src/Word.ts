@@ -11,10 +11,10 @@ export class Meaning {
 
 export class Translation {
     public trans?: string;
-    public transSens?: SentencePair[];
+    public transSens?: TranslatedSentence[];
 }
 
-export class SentencePair {
+export class TranslatedSentence {
     public src: string;
     public dst: string;
 }

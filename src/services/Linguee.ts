@@ -5,7 +5,7 @@ import {
     WordInfo,
     WordService
 } from "./WordService";
-import {SentencePair, Translation, Word} from "../Word";
+import {TranslatedSentence, Translation, Word} from "../Word";
 import axios from "axios";
 import {urlify} from "../utils/Utils";
 
@@ -87,9 +87,9 @@ export class Linguee implements WordService {
                             lingueeTranslations.push(new Translation());
                         }
 
-                        const transSens: SentencePair[] = [];
+                        const transSens: TranslatedSentence[] = [];
                         for (let item of result) {
-                            const sp: SentencePair = {
+                            const sp: TranslatedSentence = {
                                 src: Linguee.tidy(item.src),
                                 dst: Linguee.tidy(item.dst)
                             };
