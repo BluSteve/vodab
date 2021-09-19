@@ -1,12 +1,13 @@
-import {
-    ANKI_OTHERS,
-    ANKI_WORDS,
-    AnkiHandler,
-    DummyAnkiHandler,
-} from './database/AnkiAdd';
-import {FIREBASE_OTHERS, FIREBASE_WORDS} from "./database/FirebaseAdd";
-import {Word} from './Word';
+import {Anki, ANKI_OTHERS, ANKI_WORDS} from './database/Anki';
+import {FinalizedWord, MT, Word} from './Word';
 import {adminId, discordToken} from './config';
+import {stringListify} from "./utils/Utils";
+import {Language, WordError, WordInfo} from "./services/WordService";
+import {Linguee} from "./services/Linguee";
+import {Wordnik} from "./services/Wordnik";
+import {FreeDictionaryAPI} from "./services/FreeDictionaryAPI";
+import {Target, toString} from "./WordConverter";
+import {DatabaseError} from "./database/CardDatabase";
 
 const {Client} = require('discord.js');
 const TurndownService = require('turndown');
@@ -24,31 +25,50 @@ client.once('ready', () => {
     console.log('Ready!');
 });
 
-function stringListify(message: string, delimiter: string): string[] {
-    let res: string[] = message.split(delimiter);
-    for (let i = 0; i < res.length; i++) {
-        res[i] = res[i].trim();
-    }
-    return res;
+const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣',
+    '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+const cancelEmoji = '❌';
+const MAX_SELECTION_OPTIONS = emojis.length;
+
+function getMTCount(word: Word, mt: MT): number {
+    if (mt === MT.Meaning) return Math.min(word.possMeanings.length,
+        MAX_SELECTION_OPTIONS);
+    if (mt === MT.Translation) return Math.min(word.possTranslations.length,
+        MAX_SELECTION_OPTIONS);
 }
 
-async function reactSelectDef(word: Word, message): Promise<boolean> {
-    const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣',
-        '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-    const cancelEmoji = '❌';
-    const defCount = Math.min(word.possMeanings.length, emojis.length);
+async function reactSelect(word: Word, message, mt: MT): Promise<number> {
+    let replyStr: string;
+    let mtCount: number = getMTCount(word, mt);
+    if (mt === MT.Meaning) {
+        replyStr = `Multiple definitions of "${word.text}" found:\n\`\`\``;
 
-    let builder = `Multiple definitions of "${word.text}" found:\n\`\`\``;
-    for (let i = 0; i < defCount; i++) {
-        builder +=
-            `${i +
-            1}. (${word.possMeanings[i].partOfSpeech}) ${word.possMeanings[i].definition}\n`;
+        for (let i = 0;
+             i < mtCount;
+             i++) {
+            replyStr += `${i + 1}. (${word.possMeanings[i].pos})
+             ${word.possMeanings[i].def}\n`;
+        }
+        if (word.possMeanings.length > MAX_SELECTION_OPTIONS) replyStr += '...';
+
+        replyStr += '```';
     }
-    if (word.possMeanings.length > emojis.length) builder += '...';
-    builder += '```';
+    else if (mt === MT.Translation) {
+        replyStr = `Multiple translations of "${word.text}" found:\n\`\`\``;
 
-    const reply = await message.reply(builder);
-    for (let i = 0; i < defCount; i++) {
+        for (let i = 0;
+             i < mtCount;
+             i++) {
+            replyStr += `${i + 1}. ${word.possTranslations[i].trans}\n`;
+        }
+        if (word.possTranslations.length > MAX_SELECTION_OPTIONS) replyStr +=
+            '...';
+
+        replyStr += '```';
+    }
+
+    const reply = await message.reply(replyStr);
+    for (let i = 0; i < mtCount; i++) {
         reply.react(emojis[i]).catch(() => {
         });
     }
@@ -60,28 +80,42 @@ async function reactSelectDef(word: Word, message): Promise<boolean> {
                 emojis.includes(reaction.emoji.name)) &&
             user.id === message.author.id;
     };
-    const collected = await reply.awaitReactions(
-        {filter, max: 1, time: 300000});
+    const collected = await reply.awaitReactions({filter, max: 1});
     const reaction = collected.first();
 
     await reply.delete();
     if (reaction.emoji.name === cancelEmoji) {
-        return false;
+        return undefined;
     }
 
-    for (let i = 0; i < defCount; i++) {
+    for (let i = 0; i < mtCount; i++) {
         if (reaction.emoji.name === emojis[i]) {
-            word.select(i);
-            return true;
+            return i;
         }
     }
 }
 
-async function toWord(rawWord: string, wordnik = false) {
+async function toWord(rawWord: string, extended = false) {
     let s = rawWord.split('(');
     let wordId = s[0].trim();
     let pos = s.length > 1 ? s[1].split(')')[0].trim() : '';
-    return await Word.create(wordId, pos, wordnik);
+
+    let word;
+    if (extended) {
+        word = await Word.of(rawWord, new Map()
+            .set(FreeDictionaryAPI.getInstance(), WordInfo.meaning)
+            .set(Wordnik.getInstance(),
+                WordInfo.def + WordInfo.pos + WordInfo.sens)
+            .set(Linguee.getInstance(Language.en, Language.zh),
+                WordInfo.translation));
+    }
+    else {
+        word = await Word.of(rawWord, new Map()
+            .set(FreeDictionaryAPI.getInstance(), WordInfo.meaning)
+            .set(Linguee.getInstance(Language.en, Language.zh),
+                WordInfo.translation));
+    }
+    return word;
 }
 
 let readingMode: boolean = false;
@@ -112,52 +146,44 @@ client.on('messageCreate', async (message) => {
             const isWords = readingMode || !command.endsWith('o');
             const isAdmin = adminId === userId;
             const deckName = isWords ? ANKI_WORDS : ANKI_OTHERS;
-            const colName = isWords ? FIREBASE_WORDS : FIREBASE_OTHERS;
-            // let fh = await FirebaseHandler.create(userId, colName);
-            let ah = isAdmin ? new AnkiHandler(deckName) :
-                new DummyAnkiHandler();
+            let dbase = await Anki.getInstance(deckName);
 
 
             if (command === 'r') {
                 readingMode = !readingMode;
                 if (readingMode) send('Reading mode activated');
-                else send ('Reading mode deactivated');
+                else send('Reading mode deactivated');
             }
 
 
             else if (/^de?$/.test(command)) {
                 for (const rawWord of raw) {
-                    const word = command === 'de' ?
+                    const word: Word = command === 'de' ?
                         await toWord(rawWord, true) : await toWord(rawWord);
-                    if (word && word.isValid) {
-                        if (!word.isPendingSel ||
-                            await reactSelectDef(word, message))
-                            if (isAdmin) await word.getMoreExamples();
-                        await send(getWordOut(word));
-                    }
-                    else {
-                        await send(
-                            '"' + rawWord + '" is not a word!');
-                    }
+
+                    const mindex = word.possMeanings.length > 1 ?
+                        await reactSelect(word, message, MT.Meaning) : 0;
+                    const tindex = word.possTranslations.length > 1 ?
+                        await reactSelect(word, message, MT.Translation) : 0;
+                    const finalWord: FinalizedWord =
+                        word.finalized(mindex, tindex);
+
+                    await send(toString(finalWord, Target.Discord));
                 }
             }
 
 
             else if (/^f[wo]$/.test(command)) {
                 for (const Front of raw) {
-                    let info = await ah.info(Front);
-                    if (!info) {
-                        await send(`"${Front}" not found`);
-                    }
-                    else if (info === '') {
+                    let card = await dbase.find(Front);
+                    if (card.Back === '') {
                         await send(
                             `"${Front}" is found but has empty definition`);
                     }
                     else {
-                        let back: string = turndownService.turndown(
-                            info);
+                        let Back: string = turndownService.turndown(card.Back);
                         await send(
-                            `"${Front}":\n>>> ${back}`);
+                            `"${Front}":\n>>> ${Back}`);
                     }
                 }
             }
@@ -165,7 +191,7 @@ client.on('messageCreate', async (message) => {
 
             else if (/^l[wo]$/.test(command)) {
                 let counter = 0;
-                let list = await ah.listFront();
+                let list = await dbase.listFront();
                 if (list.length === 0) {
                     await send('Deck is empty');
                 }
@@ -208,7 +234,7 @@ client.on('messageCreate', async (message) => {
                     if (word && word.isValid) {
                         // let match = await fh.find(
                         //     word.wordText);
-                        let ankiMatches: number[] = await ah.find(
+                        let ankiMatches: number[] = await dbase.find(
                             word.getFront());
 
                         // if forced or no existing alike words
@@ -218,12 +244,13 @@ client.on('messageCreate', async (message) => {
                             let selected = !word.isPendingSel;
                             if (!selected) {
                                 // I'm feeling lucky
-                                if (/^wf?l$/.test(command) || readingMode && !command) {
+                                if (/^wf?l$/.test(command) || readingMode &&
+                                    !command) {
                                     word.selectMeaning(0)
                                     selected = true;
                                 }
                                 else selected =
-                                    await reactSelectDef(word, message);
+                                    await reactSelect(word, message);
                             }
 
                             if (selected) {
@@ -231,16 +258,14 @@ client.on('messageCreate', async (message) => {
 
                                 await send(getWordOut(word));
                                 if (ankiMatches.length > 0) {
-                                    await ah.updateBacks(
+                                    await dbase.updateBacks(
                                         ankiMatches,
                                         word.getBack());
-                                    // await fh.updateBack(word.wordText,
-                                    //     word.getBack());
                                     await send(
                                         `Back updated for "${word.getFront()}"`);
                                 }
                                 else {
-                                    await ah.add(word.getFront(),
+                                    await dbase.add(word.getFront(),
                                         word.getBack());
                                     // await fh.save(word.getFront(),
                                     //     word.getBack());
@@ -264,7 +289,7 @@ client.on('messageCreate', async (message) => {
                     await new Promise(r => setTimeout(r, 2000));
                 }
 
-                await ah.sync();
+                await dbase.sync();
             }
 
 
@@ -277,23 +302,23 @@ client.on('messageCreate', async (message) => {
 
                 const isForced = /^m[wo]f$/.test(command);
                 // let match = await fh.find(Front);
-                let ankiMatches: number[] = await ah.find(Front);
+                let ankiMatches: number[] = await dbase.find(Front);
 
                 if (isForced || ankiMatches.length === 0) {
                     if (ankiMatches.length > 0) {
-                        await ah.updateBacks(ankiMatches, Back);
+                        await dbase.updateBacks(ankiMatches, Back);
                         // await fh.updateBack(match.Front, Back)
                         await send(
                             `Back updated for "${Front}"`);
                     }
                     else {
-                        await ah.add(Front, Back);
+                        await dbase.add(Front, Back);
                         // await fh.save(Front, Back)
                         await send(
                             '"' + Front + '" added successfully!');
                     }
 
-                    await ah.sync();
+                    await dbase.sync();
                 }
                 else {
                     await send(
@@ -305,13 +330,13 @@ client.on('messageCreate', async (message) => {
             else if (/^del[wo]$/.test(command)) {
                 for (const Front of raw) {
                     let ankiMatches: number[] =
-                        await ah.find(Front);
+                        await dbase.find(Front);
                     // let canDelete = await fh.delete(Front);
                     if (ankiMatches.length === 0) {
                         await send(`"${Front}" not found`);
                     }
                     else {
-                        await ah.delete(ankiMatches);
+                        await dbase.delete(ankiMatches);
                         await send(
                             `Note deleted for "${Front}"`);
                     }
@@ -320,7 +345,10 @@ client.on('messageCreate', async (message) => {
         }
     } catch (e) {
         console.log(e);
-        await send('Invalid input!');
+        if (e instanceof WordError || e instanceof DatabaseError) {
+            await send(e.message);
+        }
+        else await send('Invalid input!');
     }
 });
 
