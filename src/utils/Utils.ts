@@ -26,3 +26,13 @@ export function sortAlphabetical(strs: string[]) {
     return strs.sort((a, b) => a.localeCompare(b, undefined,
         {sensitivity: 'base'}));
 }
+
+export class Pair<F, S> {
+    first: F;
+    second: S;
+
+    constructor(first: F, second: S) {
+        this.first = first;
+        this.second = second;
+    }
+}
