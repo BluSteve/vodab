@@ -4,15 +4,9 @@ import {
     AnkiHandler,
     DummyAnkiHandler,
 } from './database/AnkiAdd';
-import {
-    FIREBASE_OTHERS,
-    FIREBASE_WORDS,
-    FirebaseHandler
-} from "./database/FirebaseAdd";
+import {FIREBASE_OTHERS, FIREBASE_WORDS} from "./database/FirebaseAdd";
 import {Word} from './Word';
 import {adminId, discordToken} from './config';
-import {MessageAttachment} from "discord.js";
-import {Card} from "./database/CardDatabase";
 
 const {Client} = require('discord.js');
 const TurndownService = require('turndown');
@@ -29,26 +23,6 @@ const client = new Client(
 client.once('ready', () => {
     console.log('Ready!');
 });
-
-function getWordOut(word: Word) {
-    let wordOut: string = '>>> **' + word.text +
-        '**'
-    if (word.manualPos) wordOut += '  *' + word.manualPos + '*';
-    if (word.ipa) wordOut +=
-        '\n\nPronunciation: ' + word.ipa;
-    wordOut += '\n\nDefinition: *' + word.def + '*';
-
-    if (word.translation) wordOut +=
-        '\n\nTranslation: ' + word.translation;
-    if (word.sens.length > 0) wordOut +=
-        '\n\nExamples: \n- *' + word.sens.join('\n- ') + '*';
-    console.log(word);
-    if (word.syns.length > 0) wordOut +=
-        '\n\nSynonyms: *' + word.syns.slice(0, 5).join(", ") + '*';
-    if (word.ety) wordOut +=
-        '\n\nEtymology: *' + word.ety + '*';
-    return wordOut;
-}
 
 function stringListify(message: string, delimiter: string): string[] {
     let res: string[] = message.split(delimiter);

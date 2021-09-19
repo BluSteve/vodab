@@ -80,27 +80,57 @@ export function toCard(word: FinalizedWord, target: Target): Card {
         Back = beautify(backBuilder.join(DNL));
     }
 
-    else if (target === Target.Discord) {
-        Front = '>>> **' + word.text + '**';
-        if (word.meaning.pos) Front += '  *' + word.meaning.pos + '*';
-
-        Back = '';
-
-        if (word.meaning.ipa) Back +=
-            'Pronunciation: ' + word.meaning.ipa;
-        Back += '\n\nDefinition: *' + word.meaning.def + '*';
-
-        if (word.translation) Back +=
-            '\n\nTranslation: ' + word.translation.trans;
-        if (word.meaning.sens.length > 0) Back +=
-            '\n\nExamples: \n- *' + word.meaning.sens.join('\n- ') + '*';
-        console.log(word);
-        if (word.meaning.syns.length > 0) Back +=
-            '\n\nSynonyms: *' + word.meaning.syns.slice(0, 5).join(", ") + '*';
-        if (word.meaning.ety) Back +=
-            '\n\nEtymology: *' + word.meaning.ety + '*';
-    }
-
     if (!Front || !Back) throw new Error(`Empty card for "${word.text}"!`);
     return {Front, Back};
+}
+
+export function toString(word: FinalizedWord, target: Target): string {
+    let str;
+
+    if (target === Target.Discord) {
+        str = '>>> ';
+
+        const strBuilder: string[] = [];
+        let firstLine = '**' + word.text + '**';
+
+        if (word.meaning) {
+            if (word.meaning.pos) firstLine += '  *' + word.meaning.pos + '*';
+        }
+        strBuilder.push(firstLine);
+
+        if (word.meaning) {
+            if (word.meaning.ipa) strBuilder.push(
+                'Pronunciation: ' + word.meaning.ipa);
+            strBuilder.push('Definition: *' + word.meaning.def + '*');
+
+            if (word.meaning.sens.length > 0) strBuilder.push(
+                'Examples: \n' + word.meaning.sens.map(s => {
+                    return `- *${s}*`
+                }).join('\n'));
+        }
+
+        if (word.translation) {
+            if (word.translation.trans) strBuilder.push(
+                'Translation: ' + word.translation.trans);
+            if (word.translation.transSens &&
+                word.translation.transSens.length > 0) {
+                strBuilder.push('Translated sentences: \n' +
+                    word.translation.transSens.map(s => {
+                        return `- ${s.src}\n- ${s.dst}`;
+                    }).join('\n\n'));
+            }
+        }
+
+        if (word.meaning) {
+            if (word.meaning.syns.length > 0) strBuilder.push(
+                'Synonyms: *' + word.meaning.syns.join(", ") + '*');
+
+            if (word.meaning.ety) strBuilder.push(
+                'Etymology: *' + word.meaning.ety + '*');
+        }
+
+        str += strBuilder.join('\n\n');
+    }
+
+    return str;
 }

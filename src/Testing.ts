@@ -1,4 +1,4 @@
-import {Target, toCard} from "./WordConverter";
+import {Target, toString} from "./WordConverter";
 import {FreeDictionaryAPI} from "./services/FreeDictionaryAPI";
 import {GoogleTranslate} from "./services/GoogleTranslate";
 import {Language, WordInfo} from "./services/WordService";
@@ -6,8 +6,6 @@ import {Linguee} from "./services/Linguee";
 import {Wordnik} from "./services/Wordnik";
 import {Word} from "./Word";
 import {printAll} from "./utils/Utils";
-import {Card} from "./database/CardDatabase";
-import {Anki} from "./database/Anki";
 
 async function main() {
     const raw = 'forlorn';
@@ -34,10 +32,13 @@ async function main() {
     // await anki.addAll([card]);
     // await anki.addAll(cards);
 
-    const actualCard: Card = toCard(a, Target.Anki);
-    console.log(actualCard)
-    const anki = await Anki.getInstance('asdf');
-    await anki.update(actualCard);
+    // const actualCard: Card = toCard(a, Target.Anki);
+    // console.log(actualCard)
+    // const anki = await Anki.getInstance('asdf');
+    // await anki.update(actualCard);
+
+    const str = toString(a, Target.Discord);
+    console.log(str)
 }
 
 main().then();
