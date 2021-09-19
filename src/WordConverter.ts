@@ -13,28 +13,71 @@ export function toCard(word: FinalizedWord, target: Target): Card {
             word.text;
 
         Back = '';
+        const backBuilder: string[] = [];
 
         const beautify = require('js-beautify').html;
         const DNL = ' <br><br> ';
 
-        for (let x of [word.meaning.ipa, word.meaning.pos,
-            word.meaning.def, word.translation.trans]) {
-            if (x) Back += x + DNL;
+        if (word.meaning) {
+            for (let x of
+                [word.meaning.ipa, word.meaning.pos, word.meaning.def]) {
+                if (x) backBuilder.push(x);
+            }
         }
 
-        // Italicizes the word, case-insensitive.
-        if (word.meaning.sens.length > 0) Back += '<ul><li>' +
-            word.meaning.sens.map(
-                item => item.replace(new RegExp(word.text, 'gi'),
-                    a => `<i>${a}</i>`))
-                .join('</li><li>') + '</li></ul>';
+        if (word.translation) {
+            if (word.translation.trans) {
+                backBuilder.push(word.translation.trans);
+            }
+        }
 
-        if (word.meaning.sens.length === 0) Back += '<br>';
-        if (word.meaning.syns.length > 0) Back +=
-            '<br>' + word.meaning.syns.slice(0, 5).join(', ');
-        if (word.meaning.ety) Back += DNL + word.meaning.ety;
+        if (word.meaning) {
+            // Italicizes the word, case-insensitive.
+            if (word.meaning.sens && word.meaning.sens.length > 0) {
+                let senList = '';
 
-        Back = beautify(Back);
+                senList += '<ul>';
+                for (let i = 0; i < word.meaning.sens.length; i++) {
+                    const sen = word.meaning.sens[i];
+                    senList += '<li> ';
+                    senList += sen.replace(new RegExp(word.text, 'gi'),
+                        a => `<i> ${a} </i>`);
+                    if (i < word.meaning.sens.length - 1) senList += DNL;
+                    senList += ' </li>';
+                }
+                senList += '</ul>';
+
+                backBuilder.push(senList);
+            }
+        }
+
+        if (word.translation) {
+            if (word.translation.transSens) {
+                let table: string = '';
+
+                table += '<style> table, th, td {border: 1px solid black; ' +
+                    'border-collapse: collapse;}</style>'
+                table += '<table>';
+                for (const transSens of word.translation.transSens) {
+                    table += '<tr>';
+                    table += `<td> ${transSens.src} </td>`
+                    table += `<td> ${transSens.dst} </td>`
+                    table += '</tr>';
+                }
+                table += '</table>';
+
+                backBuilder.push(table);
+            }
+        }
+
+        if (word.meaning) {
+            if (word.meaning.syns.length > 0) backBuilder.push(
+                word.meaning.syns.slice(0, 5).join(', '));
+
+            if (word.meaning.ety) backBuilder.push(word.meaning.ety);
+        }
+
+        Back = beautify(backBuilder.join(DNL));
     }
 
     else if (target === Target.Discord) {
