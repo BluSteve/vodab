@@ -49,7 +49,7 @@ export class Wordnik implements WordService {
                 }
 
                 const result: any[] = axiosResponse.data;
-                word.text = raw;
+
                 // sometimes the text is unavailable (api bug?)
                 word.possMeanings =
                     result.filter(item => item.text).map(item => {
