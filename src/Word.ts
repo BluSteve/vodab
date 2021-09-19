@@ -1,5 +1,5 @@
 import {WordService} from "./services/WordService";
-import {clone} from "./utils/Utils";
+import {clone, urlify} from "./utils/Utils";
 
 export class Meaning {
     public def?: string;
@@ -38,7 +38,7 @@ export class Word {
 
     private constructor(rawInput: string) {
         this.rawInput = rawInput;
-        this.urlable = rawInput.replace(/ /g, '%20');
+        this.urlable = urlify(rawInput);
         this.text = rawInput; // temporary until canonalization
     }
 

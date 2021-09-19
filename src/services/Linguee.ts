@@ -7,7 +7,6 @@ import {
 } from "./WordService";
 import {TranslatedSentence, Translation, Word} from "../Word";
 import axios from "axios";
-import {urlify} from "../utils/Utils";
 
 export class Linguee implements WordService {
     private static instances: Map<Language[], Linguee> = new Map();
@@ -34,7 +33,7 @@ export class Linguee implements WordService {
     async process(word: Word, infoWanted?: number): Promise<void> {
         infoWanted = getValidInfo(this, infoWanted, word);
 
-        const wtext = urlify(word.text);
+        const wtext = word.urlable;
         const wantTrans: boolean = (infoWanted & WordInfo.trans +
             WordInfo.transSens) > 0;
 
