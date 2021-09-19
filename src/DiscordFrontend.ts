@@ -120,6 +120,61 @@ async function toWord(raw: string, extended = false) {
     return Word.of(rawWordInput, serviceRequest, manualPos);
 }
 
+// transient class made to handle one message
+class MessageHandler {
+    message: any;
+    send: Function;
+    content: string;
+    userId: string;
+    command: string;
+    params: string;
+    readingMode: boolean;
+
+    constructor(message, user: User) {
+        this.message = message;
+        this.content = message.content.trim();
+        this.userId = message.author.id;
+        this.send = content => message.channel.send(content);
+        this.readingMode = user.readingMode;
+
+        if (this.content.startsWith('!')) {
+            this.command = this.content.split(' ')[0].substr(1);
+            this.params = this.content.split(' ').slice(1).join(' ');
+        }
+        else if (readingMode) {
+            this.params = this.content;
+        }
+    }
+
+    async handleMessage() {
+
+    }
+}
+
+// stores persistent info on the user
+class User {
+    static users: Map<string, User> = new Map();
+    userId: string;
+    readingMode: boolean = false;
+
+    private constructor(userId: string) {
+        this.userId = userId;
+    }
+
+    static getUser(userId: string): User {
+        if (!this.users.get(userId)) {
+            this.users.set(userId, new this(userId));
+        }
+        return this.users.get(userId);
+    }
+
+    async handleMessage(message): Promise<void> {
+        const messageHandler: MessageHandler =
+            new MessageHandler(message, this);
+        await messageHandler.handleMessage();
+    }
+}
+
 let readingMode: boolean = false;
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
