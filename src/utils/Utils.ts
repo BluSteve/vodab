@@ -18,6 +18,10 @@ export function arrayUnique(a: string[], fuzzy?: boolean) {
     return a;
 }
 
+export function clone(array: any[]) {
+    return JSON.parse(JSON.stringify(array));
+}
+
 export function printAll(a) {
     console.log(JSON.stringify(a, null, 2));
 }
