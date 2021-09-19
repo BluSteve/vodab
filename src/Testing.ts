@@ -1,4 +1,4 @@
-import {Target, toString} from "./ui/frontend/WordConverter";
+import {toString} from "./ui/frontend/WordConverter";
 import {FreeDictionaryAPI} from "./api/services/FreeDictionaryAPI";
 import {GoogleTranslate} from "./api/services/GoogleTranslate";
 import {Language, WordInfo} from "./api/services/WordService";
@@ -40,7 +40,7 @@ async function main() {
     // const anki = await Anki.getInstance('asdf');
     // await anki.update(actualCard);
 
-    const str = toString(a, Target.Discord);
+    const str = toString(a);
     console.log(str)
 }
 

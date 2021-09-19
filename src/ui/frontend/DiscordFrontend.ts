@@ -6,7 +6,7 @@ import {Language, WordError, WordInfo} from "../../api/services/WordService";
 import {Linguee} from "../../api/services/Linguee";
 import {Wordnik} from "../../api/services/Wordnik";
 import {FreeDictionaryAPI} from "../../api/services/FreeDictionaryAPI";
-import {Target, toString} from "./WordConverter";
+import {toString} from "./WordConverter";
 import {Card, CardDatabase, DatabaseError} from "../backend/CardDatabase";
 import {MessageAttachment} from "discord.js";
 
@@ -256,7 +256,7 @@ class MessageHandler {
         const finalWord: FinalizedWord =
             word.finalized(mindex, tindex);
 
-        await this.send(toString(finalWord, Target.Discord));
+        await this.send(toString(finalWord));
     }
 
     private async findWord(rawWord: string) {
