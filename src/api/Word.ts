@@ -67,7 +67,7 @@ export class Word {
     public finalized(mindex?: number, tindex?: number, limit = 5,
                      senCharLimit = 150): FinalizedWord {
         if (mindex >= this.possMeanings.length ||
-            tindex >= this.possTranslations.length) {
+            tindex >= this.possTranslations.length || (!mindex || !tindex)) {
             throw new Error('Invalid meaning/translation selection!');
         }
 
@@ -76,8 +76,6 @@ export class Word {
             manualPos: this.manualPos
         }
 
-        if (mindex === undefined) mindex = 0;
-        if (tindex === undefined) tindex = 0;
         if (mindex >= 0) fw.meaning = this.possMeanings[mindex];
         if (tindex >= 0) fw.translation = this.possTranslations[tindex];
 
