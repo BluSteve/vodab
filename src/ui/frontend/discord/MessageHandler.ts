@@ -290,7 +290,7 @@ export class MessageHandler {
             await this.send(`"${rawWord}" is found but has empty definition`);
         }
         else {
-            const filename = `./image/${sha256(card.Back)}.png`;
+            const filename = `./${sha256(card.Back)}.png`;
             await MessageHandler.toImage(card.Back, filename);
             if (this.settings.darkMode) await invertImage(filename);
             await this.send({
