@@ -6,7 +6,7 @@ const {Client} = require('discord.js');
 // const version = require('./package.json').version;
 // console.log(`version = ${version}`)
 
-const client = new Client(
+export const client = new Client(
     {
         intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS']
     });
@@ -23,7 +23,8 @@ client.on('messageCreate', async (message) => {
         await user.handleMessage(message);
     } catch (e) {
         console.log(e);
-        await message.channel.send('Invalid input!');
+        await message.channel.send(
+            'Invalid input! Critical error: ' + e.message);
     }
 });
 

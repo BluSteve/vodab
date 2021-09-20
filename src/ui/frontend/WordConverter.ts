@@ -74,7 +74,7 @@ export function toCard(word: FinalizedWord): Card {
 
     Back = beautify(backBuilder.join(DNL));
 
-    if (!Front || !Back) throw new Error(`Empty card for "${word.text}"!`);
+    if (!Front) throw new Error(`Empty card for "${word.text}"!`);
     return {Front, Back};
 }
 

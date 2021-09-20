@@ -93,8 +93,9 @@ export class Word {
 
         const fw: FinalizedWord = {
             text: this.text,
-            manualPos: this.manualPos
         }
+
+        if (this.manualPos) fw.manualPos = this.manualPos;
 
         if (mindex >= 0 && mindex < this.possMeanings.length)
             fw.meaning = this.possMeanings[mindex];

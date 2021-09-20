@@ -7,10 +7,17 @@ import {FreeDictionaryAPI} from "../../../api/services/FreeDictionaryAPI";
 import {Wordnik} from "../../../api/services/Wordnik";
 import {Linguee} from "../../../api/services/Linguee";
 import {toCard, toString} from "../WordConverter";
-import {MessageAttachment} from "discord.js";
+import {
+    DiscordAPIError,
+    Message,
+    MessageActionRow,
+    MessageAttachment,
+    MessageSelectMenu
+} from "discord.js";
 import {DiscordUser, UserSettings} from "./DiscordUser";
 import {sha256} from "js-sha256";
 import * as fs from "fs";
+import {client} from "./DiscordFrontend";
 
 const version = "1.0.0-beta";
 
@@ -20,7 +27,7 @@ export class MessageHandler {
         '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
     private static CANCEL_EMOJI = '❌';
     private static MAX_SELECTION_OPTIONS = MessageHandler.EMOJIS.length;
-    message: any;
+    message: Message;
     send: Function;
     content: string;
     command: string;
@@ -63,7 +70,8 @@ export class MessageHandler {
                 [wordnik, WordInfo.def + WordInfo.pos],
                 [lingueeSen, WordInfo.sens],
                 [wordnik, WordInfo.sens],
-                [lingueeTrans, WordInfo.translation]];
+                [lingueeTrans, WordInfo.translation]
+            ];
         }
         else {
             serviceRequest = [
@@ -158,6 +166,7 @@ export class MessageHandler {
                     console.error(e);
                     await this.send(`Error: ${e.message}`);
                 }
+                else throw e;
             }
         }
 
@@ -174,57 +183,69 @@ export class MessageHandler {
             Math.min(word.possTranslations.length,
                 MessageHandler.MAX_SELECTION_OPTIONS);
 
+        const cancel = 'cancel';
+        const options: {
+            label: string, description?: string,
+            value: string
+        }[] = [{label: 'Cancel', value: cancel}];
+
         if (mt === MT.Meaning) {
-            replyStr = `Multiple definitions of "${word.text}" found:\n\`\`\``;
+            replyStr = `Multiple meanings of "${word.text}" found:`;
 
             for (let i = 0; i < mtCount; i++) {
-                replyStr += `${i +
-                1}. (${word.possMeanings[i].pos}) ${word.possMeanings[i].def}\n`;
+                options.push({
+                    label: `${word.possMeanings[i].pos}`,
+                    description: `${word.possMeanings[i].def}`,
+                    value: `${i}`
+                });
             }
-            if (word.possMeanings.length >
-                MessageHandler.MAX_SELECTION_OPTIONS) replyStr += '...';
-
-            replyStr += '```';
         }
         else if (mt === MT.Translation) {
-            replyStr = `Multiple translations of "${word.text}" found:\n\`\`\``;
+            replyStr = `Multiple translations of "${word.text}" found:`;
 
             for (let i = 0; i < mtCount; i++) {
-                replyStr += `${i + 1}. ${word.possTranslations[i].trans}\n`;
+                options.push({
+                    label: `${word.possTranslations[i].trans}`,
+                    value: `${i}`
+                });
             }
-            if (word.possTranslations.length >
-                MessageHandler.MAX_SELECTION_OPTIONS) replyStr +=
-                '...';
-
-            replyStr += '```';
         }
 
-        const reply = await this.message.reply(replyStr);
-        for (let i = 0; i < mtCount; i++) {
-            reply.react(MessageHandler.EMOJIS[i]).catch(() => {
-            });
-        }
-        reply.react(MessageHandler.CANCEL_EMOJI).catch(() => {
+        const filter: (m: any) => boolean =
+            m => m.author.id === this.user.userId;
+
+        const selectMT = 'selectMT';
+        const row = new MessageActionRow().addComponents(
+            new MessageSelectMenu()
+                .setCustomId(selectMT)
+                .setPlaceholder('Nothing selected')
+                .addOptions(options),
+        )
+
+        const reply = await this.message.reply({
+            content: replyStr,
+            components: [row]
         });
 
-        const filter = (reaction, user) => {
-            return (reaction.emoji.name === MessageHandler.CANCEL_EMOJI ||
-                    MessageHandler.EMOJIS.includes(reaction.emoji.name)) &&
-                user.id === this.user.userId;
-        };
-        const collected = await reply.awaitReactions({filter, max: 1});
-        const reaction = collected.first();
-
-        reply.delete();
-        if (reaction.emoji.name === MessageHandler.CANCEL_EMOJI) {
-            return undefined;
-        }
-
-        for (let i = 0; i < mtCount; i++) {
-            if (reaction.emoji.name === MessageHandler.EMOJIS[i]) {
-                return i;
-            }
-        }
+        return new Promise<number>(async (resolve, reject) => {
+            client.on('interactionCreate', async interaction => {
+                if (!interaction.isSelectMenu() ||
+                    interaction.user.id !== this.user.userId) return;
+                if (interaction.customId === cancel) {
+                    reject();
+                }
+                if (interaction.customId === selectMT) {
+                    const index = parseInt(interaction.values[0]);
+                    try {
+                        // I don't know why this try catch is necessary...
+                        await reply.delete();
+                    } catch (e) {
+                        if (!(e instanceof DiscordAPIError)) throw e;
+                    }
+                    resolve(index);
+                }
+            });
+        });
     }
 
     private async finalizeWord(word: Word): Promise<FinalizedWord> {
@@ -336,12 +357,12 @@ export class MessageHandler {
             else finalWord = await this.finalizeWord(word);
 
             await this.send(toString(finalWord));
+            console.log(finalWord)
             const card = toCard(finalWord);
 
             if (match) {
                 await db.update(card);
-                await this.send(
-                    `Back updated for "${card.Front}"`);
+                await this.send(`Back updated for "${card.Front}"`);
             }
             else {
                 await db.add(card);
