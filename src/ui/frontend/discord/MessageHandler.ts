@@ -132,34 +132,35 @@ export class MessageHandler {
                         try {
                             if (/^de?l?i?$/.test(this.command)) {
                                 MessageHandler.safetyCheck(rawWord);
-                                this.defineWord(rawWord);
+                                await this.defineWord(rawWord);
                             }
 
                             else if (/^wf?e?l?$/.test(this.command) ||
                                 this.settings.readingMode && !this.command) {
                                 MessageHandler.safetyCheck(rawWord);
-                                this.addWord(rawWord);
+                                await this.addWord(rawWord);
                                 isDBModified = true;
                             }
 
                             else if (/^fw$/.test(this.command)) {
-                                this.findWord(rawWord);
+                                await this.findWord(rawWord);
                             }
 
                             else if (/^mwf?$/.test(this.command)) {
-                                this.addManualWord(rawWord);
+                                await this.addManualWord(rawWord);
                                 isDBModified = true;
                             }
 
                             else if (/^delw$/.test(this.command)) {
-                                this.deleteWord(rawWord);
+                                await this.deleteWord(rawWord);
                                 isDBModified = true;
                             }
                         } catch (e) {
                             if (e instanceof DatabaseError ||
                                 e instanceof WordError) {
                                 console.error(e);
-                                this.send(`Error ("${rawWord}"): ${e.message}`);
+                                await this.send(
+                                    `Error ("${rawWord}"): ${e.message}`);
                             }
                             else throw e;
                         }
