@@ -19,11 +19,14 @@ export function toCard(word: FinalizedWord): Card {
     const translation = word.translation;
 
     if (meaning) {
-        for (let x of [meaning.ipa, meaning.pos, meaning.def]) {
+        for (let x of [meaning.ipa, meaning.pos, meaning.def, meaning.ety]) {
             if (x) backBuilder.push(x);
         }
 
+        if (meaning.syns && meaning.syns.length > 0) backBuilder.push(
+            meaning.syns.slice(0, 5).join(', '));
     }
+
     if (translation) {
         if (translation.trans) {
             backBuilder.push(translation.trans);
@@ -69,13 +72,6 @@ export function toCard(word: FinalizedWord): Card {
         }
     }
 
-    if (meaning) {
-        if (meaning.syns && meaning.syns.length > 0) backBuilder.push(
-            meaning.syns.slice(0, 5).join(', '));
-
-        if (meaning.ety) backBuilder.push(meaning.ety);
-    }
-
     Back = beautify(backBuilder.join(DNL));
 
     if (!Front || !Back) throw new Error(`Empty card for "${word.text}"!`);
@@ -94,13 +90,26 @@ export function toString(word: FinalizedWord): string {
     if (meaning) {
         if (meaning.pos) firstLine += '  *' + meaning.pos + '*';
     }
+
     strBuilder.push(firstLine);
 
     if (meaning) {
-        if (meaning.ipa) strBuilder.push(
-            'Pronunciation: ' + meaning.ipa);
-        strBuilder.push('Definition: *' + meaning.def + '*');
+        if (meaning.ipa) strBuilder.push('Pronunciation: ' + meaning.ipa);
 
+        if (meaning.def) strBuilder.push('Definition: *' + meaning.def + '*');
+
+        if (meaning.ety) strBuilder.push('Etymology: *' + meaning.ety + '*');
+
+        if (meaning.syns && meaning.syns.length > 0) strBuilder.push(
+            'Synonyms: *' + meaning.syns.join(", ") + '*');
+    }
+
+    if (translation) {
+        if (translation.trans) strBuilder.push(
+            'Translation: ' + translation.trans);
+    }
+
+    if (meaning) {
         if (meaning.sens && meaning.sens.length > 0) strBuilder.push(
             'Examples: \n' + meaning.sens.map(s => {
                 return `- *${s}*`
@@ -108,8 +117,6 @@ export function toString(word: FinalizedWord): string {
     }
 
     if (translation) {
-        if (translation.trans) strBuilder.push(
-            'Translation: ' + translation.trans);
         if (translation.transSens &&
             translation.transSens.length > 0) {
             strBuilder.push('Translated sentences: \n' +
@@ -117,14 +124,6 @@ export function toString(word: FinalizedWord): string {
                     return `- ${s.src}\n- ${s.dst}`;
                 }).join('\n\n'));
         }
-    }
-
-    if (meaning) {
-        if (meaning.syns && meaning.syns.length > 0) strBuilder.push(
-            'Synonyms: *' + meaning.syns.join(", ") + '*');
-
-        if (meaning.ety) strBuilder.push(
-            'Etymology: *' + meaning.ety + '*');
     }
 
     str += strBuilder.join('\n\n');

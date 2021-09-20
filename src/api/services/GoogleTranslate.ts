@@ -1,7 +1,6 @@
 import {
     getValidInfo,
     Language,
-    TranslationError,
     WordInfo,
     WordService
 } from "./WordService";
@@ -48,7 +47,6 @@ export class GoogleTranslate implements WordService {
         });
 
         if (ts) word.possTranslations.push({trans: ts[0]});
-        else throw new TranslationError(word);
     }
 
     convertLanguage(l: Language): string {

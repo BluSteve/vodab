@@ -26,7 +26,7 @@ export class APILimitExceededError extends WordError {
     }
 }
 
-export class DefinitionError extends WordError {
+export class MeaningError extends WordError {
     constructor(word: Word) {
         super(`No definitions are found for "${word.rawInput}"!`);
         this.name = 'DefinitionError';

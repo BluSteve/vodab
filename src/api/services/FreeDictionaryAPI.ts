@@ -1,5 +1,4 @@
 import {
-    DefinitionError,
     getValidInfo,
     WordInfo,
     WordService
@@ -28,13 +27,12 @@ export class FreeDictionaryAPI implements WordService {
 
         const url = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
         const response = await axios.get(url + word.urlable)
-            .catch(err => {
-                if (err.response.status === 404) {
-                    throw new DefinitionError(word);
-                }
+            .catch(() => {
             });
 
         if (response) {
+            if (response.status !== 200) return;
+
             const result = response.data[0];
 
             word.text = result.word;
@@ -42,10 +40,6 @@ export class FreeDictionaryAPI implements WordService {
             // restrict their meanings based on manual pos
             let theirMeanings = word.manualPos ? result.meanings.filter(
                 item => item.partOfSpeech === word.manualPos) : result.meanings;
-
-            if (theirMeanings.length === 0) {
-                throw new DefinitionError(word);
-            }
 
             // nomenclature confusion
             for (const theirMeaning of theirMeanings) {

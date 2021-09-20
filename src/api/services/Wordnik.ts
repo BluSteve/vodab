@@ -1,6 +1,5 @@
 import {
     APILimitExceededError,
-    DefinitionError,
     getValidInfo,
     WordInfo,
     WordService
@@ -34,21 +33,19 @@ export class Wordnik implements WordService {
         if (infoWanted & WordInfo.def + WordInfo.pos) {
             const url = `https://api.wordnik.com/v4/word.json/${raw}` +
                 `/definitions?limit=10&sourceDictionaries=ahd-5%2Ccentury&api_key=${wordnikToken}`;
-            const axiosResponse = await axios.get(url, {
+            const response = await axios.get(url, {
                 validateStatus: function () {
                     return true;
                 }
             });
-            if (axiosResponse) {
-                if (axiosResponse.status === 404) {
-                    throw new DefinitionError(word);
-                }
-                if (axiosResponse.status === 429) {
+            if (response) {
+                if (response.status === 429) {
                     throw new APILimitExceededError(
                         "Wordnik API limit exceeded!");
                 }
+                else if (response.status !== 200) return;
 
-                const result: any[] = axiosResponse.data;
+                const result: any[] = response.data;
 
                 // sometimes the text is unavailable (api bug?)
                 word.possMeanings.push(...
@@ -79,13 +76,11 @@ export class Wordnik implements WordService {
                 }
             });
             if (response) {
-                if (response.status === 404) {
-                    throw new DefinitionError(word);
-                }
                 if (response.status === 429) {
                     throw new APILimitExceededError(
                         "Wordnik API limit exceeded!");
                 }
+                else if (response.status !== 200) return;
 
                 let result = response.data;
                 let sens: string[];

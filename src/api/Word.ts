@@ -1,4 +1,9 @@
-import {WordService} from "./services/WordService";
+import {
+    MeaningError,
+    TranslationError,
+    WordInfo,
+    WordService
+} from "./services/WordService";
 import {clone, urlify} from "../utils/Utils";
 
 export enum MT {
@@ -48,19 +53,33 @@ export class Word {
         this.text = rawInput; // temporary until canonalization
     }
 
-    public static async of(rawWordInput: string, req: ServiceRequest[],
+    public static async of(rawWordInput: string, reqs: ServiceRequest[],
                            manualPos?: string): Promise<Word> {
         const word: Word = new this(rawWordInput);
         word.manualPos = manualPos;
 
-        if (req) {
-            for (let [service, value] of req) {
+        if (reqs) {
+            for (let [service, value] of reqs) {
                 const before = Date.now();
                 await service.process(word, value);
                 const elapsed = Date.now() - before;
                 console.log(service.constructor.name, elapsed);
             }
         }
+
+        let meaningExpected = false;
+        let translationExpected = false;
+        for (const req of reqs) {
+            const infoWanted = req[1];
+            if (infoWanted & WordInfo.meaning) meaningExpected = true;
+            if (infoWanted & WordInfo.translation) translationExpected = true;
+        }
+
+        if (meaningExpected && word.possMeanings.length === 0)
+            throw new MeaningError(word);
+        if (translationExpected && word.possTranslations.length === 0)
+            throw new TranslationError(word);
+
         return word;
     }
 

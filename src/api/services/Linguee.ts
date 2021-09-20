@@ -1,7 +1,6 @@
 import {
     getValidInfo,
     Language,
-    TranslationError,
     WordInfo,
     WordService
 } from "./WordService";
@@ -110,9 +109,7 @@ export class Linguee implements WordService {
         }
 
         if (wantTrans) {
-            if (lingueeTranslations.length === 0) throw new TranslationError(
-                word);
-            else word.possTranslations.push(...lingueeTranslations);
+            word.possTranslations.push(...lingueeTranslations);
         }
     }
 

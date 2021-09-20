@@ -50,23 +50,23 @@ export class MessageHandler {
         let manualPos = s.length > 1 ? s[1].split(')')[0].trim() : undefined;
 
         let serviceRequest: ServiceRequest[];
+        const freeDictionaryAPI = FreeDictionaryAPI.getInstance();
+        const lingueeSen = Linguee.getInstance(Language.en, Language.fr);
+        const lingueeTrans = Linguee.getInstance(Language.en, Language.zh);
         if (extended) {
+            const wordnik = Wordnik.getInstance();
             serviceRequest = [
-                [FreeDictionaryAPI.getInstance(),
-                    WordInfo.meaning - WordInfo.sens],
-                [Wordnik.getInstance(),
-                    WordInfo.def + WordInfo.pos + WordInfo.sens],
-                [Linguee.getInstance(Language.en, Language.zh),
-                    WordInfo.translation]];
+                [freeDictionaryAPI, WordInfo.meaning],
+                [wordnik, WordInfo.def + WordInfo.pos],
+                [lingueeSen, WordInfo.sens],
+                [wordnik, WordInfo.sens],
+                [lingueeTrans, WordInfo.translation]];
         }
         else {
             serviceRequest = [
-                [FreeDictionaryAPI.getInstance(),
-                    WordInfo.meaning],
-                [Linguee.getInstance(Language.en, Language.fr),
-                    WordInfo.sens],
-                [Linguee.getInstance(Language.en, Language.zh),
-                    WordInfo.translation]
+                [freeDictionaryAPI, WordInfo.meaning],
+                [lingueeSen, WordInfo.sens],
+                [lingueeTrans, WordInfo.translation]
             ];
         }
         return Word.of(rawWordInput, serviceRequest, manualPos);
@@ -255,7 +255,6 @@ export class MessageHandler {
             await this.send(`"${rawWord}" is found but has empty definition`);
         }
         else {
-            console.log(card.Back);
             const filename = `./image/${sha256(card.Back)}.png`;
             await MessageHandler.toImage(card.Back, filename);
             if (this.user.darkMode) await invertImage(filename);
@@ -283,6 +282,7 @@ export class MessageHandler {
                 }
                 else break;
             }
+            msg = msg.slice(0, msg.length - 3);
             await this.send(msg + '```');
         }
     }
@@ -319,7 +319,6 @@ export class MessageHandler {
                 finalWord = word.finalized(0, 0);
             }
             else finalWord = await this.finalizeWord(word);
-            console.log(finalWord)
 
             await this.send(toString(finalWord));
             const card = toCard(finalWord);
