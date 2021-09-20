@@ -1,5 +1,9 @@
 // transient class made to handle one message
-import {invertImage, stringListify} from "../../../utils/Utils";
+import {
+    invertImage,
+    sortAlphabetical,
+    stringListify
+} from "../../../utils/Utils";
 import {FinalizedWord, MT, ServiceRequest, Word} from "../../../api/Word";
 import {Card, DatabaseError} from "../../backend/CardDatabase";
 import {Language, WordError, WordInfo} from "../../../api/services/WordService";
@@ -22,10 +26,6 @@ import {version} from "../../../Main";
 
 // noinspection ExceptionCaughtLocallyJS
 export class MessageHandler {
-    private static EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣',
-        '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-    private static CANCEL_EMOJI = '❌';
-    private static MAX_SELECTION_OPTIONS = MessageHandler.EMOJIS.length;
     message: Message;
     send: Function;
     content: string;
@@ -176,42 +176,44 @@ export class MessageHandler {
         let replyStr: string;
         let mtCount: number;
 
-        if (mt === MT.Meaning) mtCount = Math.min(word.possMeanings.length,
-            MessageHandler.MAX_SELECTION_OPTIONS);
-        if (mt === MT.Translation) mtCount =
-            Math.min(word.possTranslations.length,
-                MessageHandler.MAX_SELECTION_OPTIONS);
+        if (mt === MT.Meaning) mtCount = word.possMeanings.length;
+        if (mt === MT.Translation) mtCount = word.possTranslations.length;
 
         const cancel = 'cancel';
         const options: {
             label: string, description?: string,
             value: string
-        }[] = [{label: 'Cancel', value: cancel}];
+        }[] = [{label: '❌ Cancel ❌', value: cancel}];
 
         if (mt === MT.Meaning) {
-            replyStr = `Multiple meanings of "${word.text}" found:`;
+            replyStr = `Multiple meanings of "${word.text}" found:\`\`\`\n`;
 
             for (let i = 0; i < mtCount; i++) {
+                replyStr += `${i + 1}. (${word.possMeanings[i].pos}) ` +
+                    `${word.possMeanings[i].def}\n`;
+
                 options.push({
-                    label: `${word.possMeanings[i].pos}`,
-                    description: `${word.possMeanings[i].def}`,
+                    label: `${i + 1}. ${word.possMeanings[i].pos}`,
+                    description: `${word.possMeanings[i].def}`.slice(0, 100),
                     value: `${i}`
                 });
             }
         }
         else if (mt === MT.Translation) {
-            replyStr = `Multiple translations of "${word.text}" found:`;
+            replyStr = `Multiple translations of "${word.text}" found:\`\`\`\n`;
 
             for (let i = 0; i < mtCount; i++) {
+                replyStr += `${i + 1}. ${word.possTranslations[i].trans}\n`;
+
                 options.push({
-                    label: `${word.possTranslations[i].trans}`,
+                    label: `${i + 1}. ${word.possTranslations[i].trans}`
+                        .slice(0, 100),
                     value: `${i}`
                 });
             }
         }
 
-        const filter: (m: any) => boolean =
-            m => m.author.id === this.user.userId;
+        replyStr += '```';
 
         const selectMT = 'selectMT';
         const row = new MessageActionRow().addComponents(
@@ -302,7 +304,8 @@ export class MessageHandler {
     }
 
     private async listWords() {
-        let list = await (await this.user.getDB()).listFront();
+        let list = sortAlphabetical(
+            await (await this.user.getDB()).listFront());
         if (list.length === 0) {
             await this.send('Deck is empty');
         }
