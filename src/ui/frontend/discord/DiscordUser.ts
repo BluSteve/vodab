@@ -47,7 +47,7 @@ export class DiscordUser {
 
     async handleMessage(message): Promise<void> {
         const messageHandler: MessageHandler =
-            new MessageHandler(message, this);
-        await messageHandler.handleMessage();
+            MessageHandler.getInstance(message, this);
+        if (messageHandler) await messageHandler.handleMessage();
     }
 }

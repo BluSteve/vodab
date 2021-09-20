@@ -36,7 +36,7 @@ export class MessageHandler {
     user: DiscordUser;
     private readonly settings: UserSettings;
 
-    constructor(message, user: DiscordUser) {
+    private constructor(message: Message, user: DiscordUser) {
         this.message = message;
         this.content = message.content.trim();
         this.user = user;
@@ -52,6 +52,13 @@ export class MessageHandler {
         }
 
         this.predList = stringListify(this.predicate, ',,');
+    }
+
+    static getInstance(message: Message,
+                       user: DiscordUser): MessageHandler | undefined {
+        if (message.content.trim().startsWith('!'))
+            return new MessageHandler(message, user);
+        return undefined;
     }
 
     private static async toWord(rawWord: string, extended = false) {
@@ -81,6 +88,12 @@ export class MessageHandler {
             ];
         }
         return Word.of(rawWordInput, serviceRequest, manualPos);
+    }
+
+    private static safetyCheck(rawWord: string) {
+        if (!/^[\p{L}\-]*$/u.test(rawWord)) {
+            throw new Error(`Invalid characters in ${rawWord}`);
+        }
     }
 
     async handleMessage() {
@@ -118,17 +131,19 @@ export class MessageHandler {
                     for (const rawWord of this.predList) {
                         try {
                             if (/^de?l?i?$/.test(this.command)) {
+                                MessageHandler.safetyCheck(rawWord);
                                 await this.defineWord(rawWord);
-                            }
-
-                            else if (/^fw$/.test(this.command)) {
-                                await this.findWord(rawWord);
                             }
 
                             else if (/^wf?e?l?$/.test(this.command) ||
                                 this.settings.readingMode && !this.command) {
+                                MessageHandler.safetyCheck(rawWord);
                                 await this.addWord(rawWord);
                                 isDBModified = true;
+                            }
+
+                            else if (/^fw$/.test(this.command)) {
+                                await this.findWord(rawWord);
                             }
 
                             else if (/^mwf?$/.test(this.command)) {
