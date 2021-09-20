@@ -83,8 +83,8 @@ export class Word {
         return word;
     }
 
-    public finalized(mindex?: number, tindex?: number, limit = 5,
-                     senCharLimit = 150): FinalizedWord {
+    public finalized(mindex?: number, tindex?: number,
+                     senLimit = 5, senCharLimit = 150): FinalizedWord {
         if (mindex >= this.possMeanings.length ||
             tindex >= this.possTranslations.length ||
             (mindex === undefined && tindex === undefined)) {
@@ -106,12 +106,12 @@ export class Word {
         // Will default to shortest sentences if not enough to fill the quota.
         const filterSens = (sens: any[], len: Function) => {
             const temp = sens.filter(i => len(i) < senCharLimit)
-                .slice(0, limit);
+                .slice(0, senLimit);
 
             let senCount = temp.length;
-            if (senCount < limit) {
+            if (senCount < senLimit) {
                 temp.push(...sens.sort((a, b) => len(a) - len(b))
-                    .slice(senCount, limit));
+                    .slice(senCount, senLimit));
             }
 
             return clone(temp);
@@ -123,7 +123,7 @@ export class Word {
             }
 
             if (fw.meaning.syns) {
-                fw.meaning.syns = clone(fw.meaning.syns.slice(0, limit));
+                fw.meaning.syns = clone(fw.meaning.syns.slice(0, senLimit));
             }
         }
 

@@ -23,6 +23,7 @@ import {sha256} from "js-sha256";
 import * as fs from "fs";
 import {client} from "./DiscordFrontend";
 import {version} from "../../../Main";
+import _ = require("lodash");
 
 // noinspection ExceptionCaughtLocallyJS
 export class MessageHandler {
@@ -114,6 +115,10 @@ export class MessageHandler {
 
                 else if (this.command === 'ps') {
                     await this.printSettings();
+                }
+
+                else if (this.command === 'cs') {
+                    await this.changeSettings(`\{${this.predicate}\}`);
                 }
 
                 else if (/^lw$/.test(this.command)) {
@@ -259,20 +264,21 @@ export class MessageHandler {
             tindex = word.possTranslations.length > 1 ?
                 await this.reactSelect(word, MT.Translation) : 0;
         }
-        return word.finalized(mindex, tindex);
+        return word.finalized(mindex, tindex, this.settings.senLimit,
+            this.settings.senCharLimit);
     }
 
     private async changeDeck(newDeckName: string) {
         this.settings.deckName = newDeckName;
         await this.user.updateDB();
-        this.send(`Deck name changed to ${newDeckName}`);
+        this.send(`Deck name changed to "${newDeckName}".`);
     }
 
     private async toggleReadingMode() {
         this.settings.readingMode = !this.settings.readingMode;
         if (this.settings.readingMode) await this.send(
-            'Reading mode activated');
-        else await this.send('Reading mode deactivated');
+            'Reading mode activated.');
+        else await this.send('Reading mode deactivated.');
     }
 
     private async defineWord(rawWord: string) {
@@ -289,7 +295,7 @@ export class MessageHandler {
             await this.send(`"${rawWord}" not found!`);
         }
         else if (card.Back === '') {
-            await this.send(`"${rawWord}" is found but has empty definition`);
+            await this.send(`"${rawWord}" is found but has empty definition.`);
         }
         else {
             const filename = `./${sha256(card.Back)}.png`;
@@ -354,7 +360,9 @@ export class MessageHandler {
             // I'm feeling lucky
             if (/^wf?l$/.test(this.command) ||
                 this.settings.readingMode && !this.command) {
-                finalWord = word.finalized(0, 0);
+                finalWord = word.finalized(0, 0,
+                    this.settings.senLimit,
+                    this.settings.senCharLimit);
             }
             else finalWord = await this.finalizeWord(word);
 
@@ -364,7 +372,7 @@ export class MessageHandler {
 
             if (match) {
                 await db.update(card);
-                await this.send(`Back updated for "${card.Front}"`);
+                await this.send(`Back updated for "${card.Front}".`);
             }
             else {
                 await db.add(card);
@@ -412,6 +420,27 @@ export class MessageHandler {
     private async printSettings() {
         await this.send(this.message.author.tag +
             ': \n```' + JSON.stringify(this.settings, null, 2) + '```');
+    }
+
+    private async changeSettings(json: string): Promise<void> {
+        const invalidSettings = 'Invalid settings!';
+        try {
+            let newSettings = JSON.parse(json);
+            const existingKeys = Object.keys(this.user.settings);
+            const newKeys = Object.keys(newSettings);
+            if (newKeys.every(v => existingKeys.includes(v))) {
+                _.merge(this.user.settings, newSettings);
+                await this.send('Settings updated.');
+                await this.printSettings();
+            }
+            else {
+                await this.send(invalidSettings);
+            }
+        } catch (e) {
+            if (e instanceof SyntaxError) {
+                await this.send(invalidSettings);
+            }
+        }
     }
 
     private async sendLongString(str: string,

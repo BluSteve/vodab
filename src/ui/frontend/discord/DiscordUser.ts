@@ -8,6 +8,8 @@ export class UserSettings {
     readingMode: boolean = false;
     darkMode: boolean = false;
     deckName: string = ANKI_WORDS;
+    senLimit: number = 5;
+    senCharLimit: number = 150;
 }
 
 export class DiscordUser {
