@@ -99,7 +99,6 @@ export class Word {
 
         if (fw.meaning) {
             if (fw.meaning.sens) {
-                console.log(fw.meaning.sens)
                 fw.meaning.sens = filterSens(fw.meaning.sens, i => i.length);
             }
 

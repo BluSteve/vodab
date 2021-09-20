@@ -9,6 +9,7 @@ export class DiscordUser {
     userId: string;
     isAdmin: boolean;
     readingMode: boolean = false;
+    darkMode: boolean = false;
     deckName: string = ANKI_WORDS;
     private db: CardDatabase | undefined; // lazy loaded on request
 

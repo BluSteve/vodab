@@ -1,5 +1,5 @@
 // transient class made to handle one message
-import {stringListify} from "../../../utils/Utils";
+import {invertImage, stringListify} from "../../../utils/Utils";
 import {FinalizedWord, MT, ServiceRequest, Word} from "../../../api/Word";
 import {Card, DatabaseError} from "../../backend/CardDatabase";
 import {Language, WordError, WordInfo} from "../../../api/services/WordService";
@@ -9,12 +9,16 @@ import {Linguee} from "../../../api/services/Linguee";
 import {toCard, toString} from "../WordConverter";
 import {MessageAttachment} from "discord.js";
 import {DiscordUser} from "./DiscordUser";
+import {sha256} from "js-sha256";
+import * as fs from "fs";
 
 const version = "1.0.0-beta";
-const TurndownService = require('turndown');
-const turndownService = new TurndownService();
 
 export class MessageHandler {
+    private static EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣',
+        '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+    private static CANCEL_EMOJI = '❌';
+    private static MAX_SELECTION_OPTIONS = MessageHandler.EMOJIS.length;
     message: any;
     send: Function;
     content: string;
@@ -22,11 +26,6 @@ export class MessageHandler {
     predicate: string;
     predList: string[]
     user: DiscordUser;
-
-    private static EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣',
-        '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-    private static CANCEL_EMOJI = '❌';
-    private static MAX_SELECTION_OPTIONS = MessageHandler.EMOJIS.length;
 
     constructor(message, user: DiscordUser) {
         this.message = message;
@@ -45,67 +44,46 @@ export class MessageHandler {
         this.predList = stringListify(this.predicate, ',,');
     }
 
-    private async reactSelect(word: Word, mt: MT): Promise<number> {
-        let replyStr: string;
-        let mtCount: number;
+    private static async toWord(rawWord: string, extended = false) {
+        let s = rawWord.split('(');
+        let rawWordInput = s[0].trim();
+        let manualPos = s.length > 1 ? s[1].split(')')[0].trim() : undefined;
 
-        if (mt === MT.Meaning) mtCount = Math.min(word.possMeanings.length,
-            MessageHandler.MAX_SELECTION_OPTIONS);
-        if (mt === MT.Translation) mtCount =
-            Math.min(word.possTranslations.length,
-                MessageHandler.MAX_SELECTION_OPTIONS);
-
-        if (mt === MT.Meaning) {
-            replyStr = `Multiple definitions of "${word.text}" found:\n\`\`\``;
-
-            for (let i = 0; i < mtCount; i++) {
-                replyStr += `${i +
-                1}. (${word.possMeanings[i].pos}) ${word.possMeanings[i].def}\n`;
-            }
-            if (word.possMeanings.length >
-                MessageHandler.MAX_SELECTION_OPTIONS) replyStr += '...';
-
-            replyStr += '```';
+        let serviceRequest: ServiceRequest[];
+        if (extended) {
+            serviceRequest = [
+                [FreeDictionaryAPI.getInstance(),
+                    WordInfo.meaning - WordInfo.sens],
+                [Wordnik.getInstance(),
+                    WordInfo.def + WordInfo.pos + WordInfo.sens],
+                [Linguee.getInstance(Language.en, Language.zh),
+                    WordInfo.translation]];
         }
-        else if (mt === MT.Translation) {
-            replyStr = `Multiple translations of "${word.text}" found:\n\`\`\``;
-
-            for (let i = 0; i < mtCount; i++) {
-                replyStr += `${i + 1}. ${word.possTranslations[i].trans}\n`;
-            }
-            if (word.possTranslations.length >
-                MessageHandler.MAX_SELECTION_OPTIONS) replyStr +=
-                '...';
-
-            replyStr += '```';
+        else {
+            serviceRequest = [
+                [FreeDictionaryAPI.getInstance(),
+                    WordInfo.meaning],
+                [Linguee.getInstance(Language.en, Language.fr),
+                    WordInfo.sens],
+                [Linguee.getInstance(Language.en, Language.zh),
+                    WordInfo.translation]
+            ];
         }
+        return Word.of(rawWordInput, serviceRequest, manualPos);
+    }
 
-        const reply = await this.message.reply(replyStr);
-        for (let i = 0; i < mtCount; i++) {
-            reply.react(MessageHandler.EMOJIS[i]).catch(() => {
-            });
-        }
-        reply.react(MessageHandler.CANCEL_EMOJI).catch(() => {
+    private static async toImage(html: string, filename: string) {
+        const puppeteer = require('puppeteer');
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.setViewport({
+            width: 720,
+            height: 960,
+            deviceScaleFactor: 1,
         });
-
-        const filter = (reaction, user) => {
-            return (reaction.emoji.name === MessageHandler.CANCEL_EMOJI ||
-                    MessageHandler.EMOJIS.includes(reaction.emoji.name)) &&
-                user.id === this.user.userId;
-        };
-        const collected = await reply.awaitReactions({filter, max: 1});
-        const reaction = collected.first();
-
-        reply.delete();
-        if (reaction.emoji.name === MessageHandler.CANCEL_EMOJI) {
-            return undefined;
-        }
-
-        for (let i = 0; i < mtCount; i++) {
-            if (reaction.emoji.name === MessageHandler.EMOJIS[i]) {
-                return i;
-            }
-        }
+        await page.setContent(html);
+        await page.screenshot({path: `${filename}`});
+        await browser.close();
     }
 
     async handleMessage() {
@@ -172,32 +150,67 @@ export class MessageHandler {
         if (isDBModified) await (await this.user.getDB()).sync();
     }
 
-    private static async toWord(rawWord: string, extended = false) {
-        let s = rawWord.split('(');
-        let rawWordInput = s[0].trim();
-        let manualPos = s.length > 1 ? s[1].split(')')[0].trim() : undefined;
+    private async reactSelect(word: Word, mt: MT): Promise<number> {
+        let replyStr: string;
+        let mtCount: number;
 
-        let serviceRequest: ServiceRequest[];
-        if (extended) {
-            serviceRequest = [
-                [FreeDictionaryAPI.getInstance(),
-                    WordInfo.meaning - WordInfo.sens],
-                [Wordnik.getInstance(),
-                    WordInfo.def + WordInfo.pos + WordInfo.sens],
-                [Linguee.getInstance(Language.en, Language.zh),
-                    WordInfo.translation]];
+        if (mt === MT.Meaning) mtCount = Math.min(word.possMeanings.length,
+            MessageHandler.MAX_SELECTION_OPTIONS);
+        if (mt === MT.Translation) mtCount =
+            Math.min(word.possTranslations.length,
+                MessageHandler.MAX_SELECTION_OPTIONS);
+
+        if (mt === MT.Meaning) {
+            replyStr = `Multiple definitions of "${word.text}" found:\n\`\`\``;
+
+            for (let i = 0; i < mtCount; i++) {
+                replyStr += `${i +
+                1}. (${word.possMeanings[i].pos}) ${word.possMeanings[i].def}\n`;
+            }
+            if (word.possMeanings.length >
+                MessageHandler.MAX_SELECTION_OPTIONS) replyStr += '...';
+
+            replyStr += '```';
         }
-        else {
-            serviceRequest = [
-                [FreeDictionaryAPI.getInstance(),
-                    WordInfo.meaning],
-                [Linguee.getInstance(Language.en, Language.fr),
-                    WordInfo.sens],
-                [Linguee.getInstance(Language.en, Language.zh),
-                    WordInfo.translation]
-            ];
+        else if (mt === MT.Translation) {
+            replyStr = `Multiple translations of "${word.text}" found:\n\`\`\``;
+
+            for (let i = 0; i < mtCount; i++) {
+                replyStr += `${i + 1}. ${word.possTranslations[i].trans}\n`;
+            }
+            if (word.possTranslations.length >
+                MessageHandler.MAX_SELECTION_OPTIONS) replyStr +=
+                '...';
+
+            replyStr += '```';
         }
-        return Word.of(rawWordInput, serviceRequest, manualPos);
+
+        const reply = await this.message.reply(replyStr);
+        for (let i = 0; i < mtCount; i++) {
+            reply.react(MessageHandler.EMOJIS[i]).catch(() => {
+            });
+        }
+        reply.react(MessageHandler.CANCEL_EMOJI).catch(() => {
+        });
+
+        const filter = (reaction, user) => {
+            return (reaction.emoji.name === MessageHandler.CANCEL_EMOJI ||
+                    MessageHandler.EMOJIS.includes(reaction.emoji.name)) &&
+                user.id === this.user.userId;
+        };
+        const collected = await reply.awaitReactions({filter, max: 1});
+        const reaction = collected.first();
+
+        reply.delete();
+        if (reaction.emoji.name === MessageHandler.CANCEL_EMOJI) {
+            return undefined;
+        }
+
+        for (let i = 0; i < mtCount; i++) {
+            if (reaction.emoji.name === MessageHandler.EMOJIS[i]) {
+                return i;
+            }
+        }
     }
 
     private async finalizeWord(word: Word): Promise<FinalizedWord> {
@@ -235,7 +248,6 @@ export class MessageHandler {
 
     private async findWord(rawWord: string) {
         let card = await (await this.user.getDB()).find(rawWord);
-        console.log(card)
         if (!card) {
             await this.send(`"${rawWord}" not found!`);
         }
@@ -243,8 +255,15 @@ export class MessageHandler {
             await this.send(`"${rawWord}" is found but has empty definition`);
         }
         else {
-            let Back: string = turndownService.turndown(card.Back);
-            await this.send(`"${rawWord}":\n>>> ${Back}`);
+            console.log(card.Back);
+            const filename = `./image/${sha256(card.Back)}.png`;
+            await MessageHandler.toImage(card.Back, filename);
+            if (this.user.darkMode) await invertImage(filename);
+            await this.send({
+                'content': `"${rawWord}":\n`,
+                files: [filename]
+            });
+            fs.unlinkSync(filename);
         }
     }
 

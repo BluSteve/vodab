@@ -1,3 +1,5 @@
+import Jimp = require("jimp");
+
 export function urlify(str: string): string {
     return str.replace(/ /g, '%20')
 }
@@ -47,4 +49,9 @@ export function stringListify(message: string, delimiter: string): string[] {
         res[i] = res[i].trim();
     }
     return res;
+}
+
+export async function invertImage(filename: string) {
+    const image = await Jimp.read(filename);
+    await image.grayscale().invert().write(filename);
 }
