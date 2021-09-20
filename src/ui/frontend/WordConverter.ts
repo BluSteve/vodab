@@ -43,7 +43,7 @@ export function toCard(word: FinalizedWord): Card {
                 const sen = meaning.sens[i];
                 senList += '<li> ';
                 senList += sen.replace(new RegExp(word.text, 'gi'),
-                    a => `<i> ${a} </i>`);
+                    a => `<i>${a}</i>`);
                 if (i < meaning.sens.length - 1) senList += DNL;
                 senList += ' </li>';
             }

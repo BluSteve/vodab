@@ -1,9 +1,4 @@
-import {
-    getValidInfo,
-    Language,
-    WordInfo,
-    WordService
-} from "./WordService";
+import {getValidInfo, Language, WordInfo, WordService} from "./WordService";
 import {TranslatedSentence, Translation, Word} from "../Word";
 import axios from "axios";
 
@@ -29,6 +24,10 @@ export class Linguee implements WordService {
         return this.instances.get(langs);
     }
 
+    static tidy(str: string): string {
+        return str.replace(/\[\.\.\.] /g, '');
+    }
+
     async process(word: Word, infoWanted?: number): Promise<void> {
         infoWanted = getValidInfo(this, infoWanted, word);
 
@@ -39,81 +38,81 @@ export class Linguee implements WordService {
         let lingueeTranslations: Translation[];
         if (wantTrans) lingueeTranslations = [];
 
-        if (infoWanted & WordInfo.trans) {
-            const url = `https://linguee-api-v2.herokuapp.com/api/v2/` +
-                `translations?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
-            const response = await axios.get(url);
+        try {
+            if (infoWanted & WordInfo.trans) {
+                const url = `https://linguee-api-v2.herokuapp.com/api/v2/` +
+                    `translations?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
+                const response = await axios.get(url);
 
-            if (response) {
-                const result = response.data;
-                for (let item of result) {
-                    for (let ctrans of item.translations.slice(0, 5)) {
-                        lingueeTranslations.push({trans: ctrans.text});
+                if (response) {
+                    const result = response.data;
+                    for (let item of result) {
+                        for (let ctrans of item.translations.slice(0, 5)) {
+                            lingueeTranslations.push({trans: ctrans.text});
+                        }
                     }
                 }
             }
-        }
 
-        if (infoWanted & WordInfo.transSens + WordInfo.sens) {
-            const url = `https://linguee-api-v2.herokuapp.com/api/v2/` +
-                `external_sources?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
-            const response = await axios.get(url);
+            if (infoWanted & WordInfo.transSens + WordInfo.sens) {
+                const url = `https://linguee-api-v2.herokuapp.com/api/v2/` +
+                    `external_sources?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
+                const response = await axios.get(url);
 
-            if (response) {
-                const result = response.data;
+                if (response) {
+                    const result = response.data;
 
-                if (infoWanted & WordInfo.sens) {
-                    let result = response.data;
-                    let sens: string[] = result.map(
-                        item => Linguee.tidy(item.src));
+                    if (infoWanted & WordInfo.sens) {
+                        let result = response.data;
+                        let sens: string[] = result.map(
+                            item => Linguee.tidy(item.src));
 
-                    if (word.possMeanings.length === 0) {
-                        word.possMeanings.push({sens});
-                    }
-                    else {
-                        for (let meaning of word.possMeanings) {
-                            if (!meaning.sens) meaning.sens = [];
-                            meaning.sens.push(...sens);
+                        if (word.possMeanings.length === 0) {
+                            word.possMeanings.push({sens});
                         }
-                    }
-                }
-
-                if (infoWanted & WordInfo.transSens) {
-                    if (result.length > 0) {
-                        // case where translation fails but transSens works
-                        if (lingueeTranslations.length === 0) {
-                            lingueeTranslations.push(new Translation());
-                        }
-
-                        const transSens: TranslatedSentence[] = [];
-                        for (let item of result) {
-                            const sp: TranslatedSentence = {
-                                src: Linguee.tidy(item.src),
-                                dst: Linguee.tidy(item.dst)
-                            };
-                            if (this.dstlang === Language.zh) {
-                                const converter = require('opencc-js')
-                                    .Converter({'from': 'hk', to: 'cn'});
-                                sp.dst = converter(sp.dst);
-                                sp.dst = sp.dst.replace(/ /g, '');
+                        else {
+                            for (let meaning of word.possMeanings) {
+                                if (!meaning.sens) meaning.sens = [];
+                                meaning.sens.push(...sens);
                             }
-                            transSens.push(sp);
                         }
+                    }
 
-                        for (let translation of lingueeTranslations) {
-                            translation.transSens = transSens.slice(); // shallow copy
+                    if (infoWanted & WordInfo.transSens) {
+                        if (result.length > 0) {
+                            // case where translation fails but transSens works
+                            if (lingueeTranslations.length === 0) {
+                                lingueeTranslations.push(new Translation());
+                            }
+
+                            const transSens: TranslatedSentence[] = [];
+                            for (let item of result) {
+                                const sp: TranslatedSentence = {
+                                    src: Linguee.tidy(item.src),
+                                    dst: Linguee.tidy(item.dst)
+                                };
+                                if (this.dstlang === Language.zh) {
+                                    const converter = require('opencc-js')
+                                        .Converter({'from': 'hk', to: 'cn'});
+                                    sp.dst = converter(sp.dst);
+                                    sp.dst = sp.dst.replace(/ /g, '');
+                                }
+                                transSens.push(sp);
+                            }
+
+                            for (let translation of lingueeTranslations) {
+                                translation.transSens = transSens.slice(); // shallow copy
+                            }
                         }
                     }
                 }
             }
+        } catch (e) {
+
         }
 
         if (wantTrans) {
             word.possTranslations.push(...lingueeTranslations);
         }
-    }
-
-    static tidy(str: string): string {
-        return str.replace(/\[\.\.\.] /g, '');
     }
 }

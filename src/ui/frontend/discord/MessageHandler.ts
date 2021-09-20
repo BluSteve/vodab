@@ -176,7 +176,7 @@ export class MessageHandler {
             }
         }
 
-        // if (isDBModified) await (await this.user.getDB()).sync();
+        if (isDBModified) await (await this.user.getDB()).sync();
     }
 
     private async sendImage(rawWord: string, html: string): Promise<void> {
