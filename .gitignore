@@ -9,7 +9,7 @@ src/api/APIConfig.ts
 # local env files
 .env.local
 .env.*.local
-src/api/key.json
+src/api/services/key.json
 src/ui/Config.ts
 src/ui/Config.js
 # Log files
