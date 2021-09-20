@@ -448,9 +448,9 @@ export class MessageHandler {
         const array: string[] = []
         const discordLimit = 2000;
         while (str) {
-            array.push(
-                prefix + str.slice(0, discordLimit - 1 - prefix.length) + '…');
-            str = str.slice(discordLimit - 1);
+            const cutoff = discordLimit - 1 - prefix.length;
+            array.push(prefix + str.slice(0, cutoff) + '…');
+            str = str.slice(cutoff);
         }
 
         array[array.length - 1] = array[array.length - 1].slice(0,
