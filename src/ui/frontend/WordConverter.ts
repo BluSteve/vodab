@@ -51,7 +51,7 @@ export function toCard(word: FinalizedWord): Card {
     }
 
     if (translation) {
-        if (translation.transSens) {
+        if (translation.transSens && translation.transSens.length > 0) {
             let table: string = '';
 
             table += '<style> table, th, td {border: 1px solid black; ' +
@@ -101,7 +101,7 @@ export function toString(word: FinalizedWord): string {
             'Pronunciation: ' + meaning.ipa);
         strBuilder.push('Definition: *' + meaning.def + '*');
 
-        if (meaning.sens.length > 0) strBuilder.push(
+        if (meaning.sens && meaning.sens.length > 0) strBuilder.push(
             'Examples: \n' + meaning.sens.map(s => {
                 return `- *${s}*`
             }).join('\n'));
@@ -129,5 +129,9 @@ export function toString(word: FinalizedWord): string {
 
     str += strBuilder.join('\n\n');
 
+    if (str.length > 2000) {
+        str = str.slice(0, 1999);
+        str += '…';
+    }
     return str;
 }

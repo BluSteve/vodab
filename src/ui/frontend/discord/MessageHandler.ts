@@ -6,11 +6,11 @@ import {Language, WordError, WordInfo} from "../../../api/services/WordService";
 import {FreeDictionaryAPI} from "../../../api/services/FreeDictionaryAPI";
 import {Wordnik} from "../../../api/services/Wordnik";
 import {Linguee} from "../../../api/services/Linguee";
-import {getCardFront, toCard, toString} from "../WordConverter";
+import {toCard, toString} from "../WordConverter";
 import {MessageAttachment} from "discord.js";
 import {DiscordUser} from "./DiscordUser";
 
-const version = require('./package.json').version;
+const version = "1.0.0-beta";
 const TurndownService = require('turndown');
 const turndownService = new TurndownService();
 
@@ -58,11 +58,9 @@ export class MessageHandler {
         if (mt === MT.Meaning) {
             replyStr = `Multiple definitions of "${word.text}" found:\n\`\`\``;
 
-            for (let i = 0;
-                 i < mtCount;
-                 i++) {
-                replyStr += `${i + 1}. (${word.possMeanings[i].pos})
-             ${word.possMeanings[i].def}\n`;
+            for (let i = 0; i < mtCount; i++) {
+                replyStr += `${i +
+                1}. (${word.possMeanings[i].pos}) ${word.possMeanings[i].def}\n`;
             }
             if (word.possMeanings.length >
                 MessageHandler.MAX_SELECTION_OPTIONS) replyStr += '...';
@@ -72,9 +70,7 @@ export class MessageHandler {
         else if (mt === MT.Translation) {
             replyStr = `Multiple translations of "${word.text}" found:\n\`\`\``;
 
-            for (let i = 0;
-                 i < mtCount;
-                 i++) {
+            for (let i = 0; i < mtCount; i++) {
                 replyStr += `${i + 1}. ${word.possTranslations[i].trans}\n`;
             }
             if (word.possTranslations.length >
@@ -95,12 +91,12 @@ export class MessageHandler {
         const filter = (reaction, user) => {
             return (reaction.emoji.name === MessageHandler.CANCEL_EMOJI ||
                     MessageHandler.EMOJIS.includes(reaction.emoji.name)) &&
-                user.id === user.userId;
+                user.id === this.user.userId;
         };
         const collected = await reply.awaitReactions({filter, max: 1});
         const reaction = collected.first();
 
-        await reply.delete();
+        reply.delete();
         if (reaction.emoji.name === MessageHandler.CANCEL_EMOJI) {
             return undefined;
         }
@@ -164,12 +160,16 @@ export class MessageHandler {
                     } catch (e) {
                         if (e instanceof DatabaseError ||
                             e instanceof WordError) {
+                            console.error(e);
                             await this.send(`Error: ${e.message}`);
                         }
+                        else throw e;
                     }
                 }
             }
         }
+
+        if (isDBModified) await (await this.user.getDB()).sync();
     }
 
     private static async toWord(rawWord: string, extended = false) {
@@ -185,35 +185,44 @@ export class MessageHandler {
                 [Wordnik.getInstance(),
                     WordInfo.def + WordInfo.pos + WordInfo.sens],
                 [Linguee.getInstance(Language.en, Language.zh),
-                    WordInfo.translation + WordInfo.sens]];
+                    WordInfo.translation]];
         }
         else {
             serviceRequest = [
                 [FreeDictionaryAPI.getInstance(),
-                    WordInfo.meaning - WordInfo.sens],
+                    WordInfo.meaning],
+                [Linguee.getInstance(Language.en, Language.fr),
+                    WordInfo.sens],
                 [Linguee.getInstance(Language.en, Language.zh),
-                    WordInfo.translation + WordInfo.sens]];
+                    WordInfo.translation]
+            ];
         }
         return Word.of(rawWordInput, serviceRequest, manualPos);
+    }
+
+    private async finalizeWord(word: Word): Promise<FinalizedWord> {
+        let mindex, tindex;
+        if (word.possMeanings.length !== 0) {
+            mindex = word.possMeanings.length > 1 ?
+                await this.reactSelect(word, MT.Meaning) : 0;
+        }
+        if (word.possTranslations.length !== 0) {
+            tindex = word.possTranslations.length > 1 ?
+                await this.reactSelect(word, MT.Translation) : 0;
+        }
+        return word.finalized(mindex, tindex);
     }
 
     private async changeDeck(newDeckName: string) {
         this.user.deckName = newDeckName;
         await this.user.updateDB();
+        this.send(`Deck name changed to ${newDeckName}`);
     }
 
     private async toggleReadingMode() {
         this.user.readingMode = !this.user.readingMode;
         if (this.user.readingMode) await this.send('Reading mode activated');
         else await this.send('Reading mode deactivated');
-    }
-
-    private async finalizeWord(word: Word): Promise<FinalizedWord> {
-        const mindex = word.possMeanings.length > 1 ?
-            await this.reactSelect(word, MT.Meaning) : 0;
-        const tindex = word.possTranslations.length > 1 ?
-            await this.reactSelect(word, MT.Translation) : 0;
-        return word.finalized(mindex, tindex);
     }
 
     private async defineWord(rawWord: string) {
@@ -226,7 +235,11 @@ export class MessageHandler {
 
     private async findWord(rawWord: string) {
         let card = await (await this.user.getDB()).find(rawWord);
-        if (card.Back === '') {
+        console.log(card)
+        if (!card) {
+            await this.send(`"${rawWord}" not found!`);
+        }
+        else if (card.Back === '') {
             await this.send(`"${rawWord}" is found but has empty definition`);
         }
         else {
@@ -263,30 +276,31 @@ export class MessageHandler {
         }
         let attachment = new MessageAttachment(
             Buffer.from(str, 'utf-8'), 'export.txt');
-        this.message.channel.this.send({
-            'content': `Here you go! (${list.length} notes)`,
+        this.send({
+            'content': `Here you go! (${list.length} cards)`,
             files: [attachment]
         });
     }
 
     private async addWord(rawWord: string) {
-        const word = (/^wf?el?$/.test(this.command)) ?
-            await MessageHandler.toWord(rawWord, true) :
-            await MessageHandler.toWord(rawWord);
         const db = await this.user.getDB();
-
-        let match: Card = await db.find(getCardFront(word));
+        let match: Card = await db.find(rawWord);
 
         // if forced or no existing alike words
         if (/^wfe?l?$/.test(this.command) || !match) {
+            const word = (/^wf?el?$/.test(this.command)) ?
+                await MessageHandler.toWord(rawWord, true) :
+                await MessageHandler.toWord(rawWord);
+
             let finalWord: FinalizedWord;
 
             // I'm feeling lucky
             if (/^wf?l$/.test(this.command) ||
                 this.user.readingMode && !this.command) {
-                finalWord = word.finalized();
+                finalWord = word.finalized(0, 0);
             }
             else finalWord = await this.finalizeWord(word);
+            console.log(finalWord)
 
             await this.send(toString(finalWord));
             const card = toCard(finalWord);
@@ -298,7 +312,7 @@ export class MessageHandler {
             }
             else {
                 await db.add(card);
-                await this.send(`"${card.Front}" added successfully!'`);
+                await this.send(`"${card.Front}" added successfully!`);
             }
         }
         else {
@@ -325,7 +339,7 @@ export class MessageHandler {
             }
             else {
                 await db.add(card);
-                await this.send(`"${card.Front}" added successfully!'`);
+                await this.send(`"${card.Front}" added successfully!`);
             }
         }
         else {

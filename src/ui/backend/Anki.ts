@@ -9,7 +9,7 @@ const axios = require('axios').default;
 const ankiurl = 'http://127.0.0.1:8765';
 const modelName = 'Basic';
 
-export const ANKI_WORDS = 'Vodab Words';
+export const ANKI_WORDS = 'asdf';
 
 export class Anki implements CardDatabase {
     private static instances: Map<string, Anki> = new Map();
@@ -131,10 +131,10 @@ export class Anki implements CardDatabase {
                 });
         }
 
-        throw new CardNotFoundError(card.Front);
+        else throw new CardNotFoundError(card.Front);
     }
 
-    public async find(Front: string): Promise<Card> {
+    public async find(Front: string): Promise<Card|undefined> {
         let id = await this.findID(Front);
 
         if (id) {
@@ -162,7 +162,7 @@ export class Anki implements CardDatabase {
             });
         }
 
-        throw new CardNotFoundError(Front);
+        else throw new CardNotFoundError(Front);
     }
 
     public async list(): Promise<Card[]> {

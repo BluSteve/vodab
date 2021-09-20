@@ -3,8 +3,8 @@ import {DiscordUser} from "./DiscordUser";
 
 const {Client} = require('discord.js');
 
-const version = require('./package.json').version;
-console.log(`version = ${version}`)
+// const version = require('./package.json').version;
+// console.log(`version = ${version}`)
 
 const client = new Client(
     {

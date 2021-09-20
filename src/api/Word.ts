@@ -67,7 +67,8 @@ export class Word {
     public finalized(mindex?: number, tindex?: number, limit = 5,
                      senCharLimit = 150): FinalizedWord {
         if (mindex >= this.possMeanings.length ||
-            tindex >= this.possTranslations.length || (!mindex || !tindex)) {
+            tindex >= this.possTranslations.length ||
+            (mindex === undefined && tindex === undefined)) {
             throw new Error('Invalid meaning/translation selection!');
         }
 
@@ -76,8 +77,10 @@ export class Word {
             manualPos: this.manualPos
         }
 
-        if (mindex >= 0) fw.meaning = this.possMeanings[mindex];
-        if (tindex >= 0) fw.translation = this.possTranslations[tindex];
+        if (mindex >= 0 && mindex < this.possMeanings.length)
+            fw.meaning = this.possMeanings[mindex];
+        if (tindex >= 0 && tindex < this.possTranslations.length)
+            fw.translation = this.possTranslations[tindex];
 
         // Function to filter sentences to be preferably below a length limit.
         // Will default to shortest sentences if not enough to fill the quota.
@@ -96,13 +99,12 @@ export class Word {
 
         if (fw.meaning) {
             if (fw.meaning.sens) {
-                fw.meaning.sens =
-                    filterSens(fw.meaning.sens, i => i.length);
+                console.log(fw.meaning.sens)
+                fw.meaning.sens = filterSens(fw.meaning.sens, i => i.length);
             }
 
             if (fw.meaning.syns) {
-                fw.meaning.syns =
-                    clone(fw.meaning.syns.slice(0, limit));
+                fw.meaning.syns = clone(fw.meaning.syns.slice(0, limit));
             }
         }
 
