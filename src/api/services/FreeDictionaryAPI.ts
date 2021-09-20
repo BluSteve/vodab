@@ -67,7 +67,7 @@ export class FreeDictionaryAPI implements WordService {
                     if (infoWanted & WordInfo.syns)
                         myMeaning.syns = theirDef.synonyms;
 
-                    if (infoWanted & WordInfo.sens)
+                    if (infoWanted & WordInfo.sens && theirDef.example)
                         myMeaning.sens = [theirDef.example];
 
                     word.possMeanings.push(myMeaning);
