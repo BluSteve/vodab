@@ -18,8 +18,7 @@ import {DiscordUser, UserSettings} from "./DiscordUser";
 import {sha256} from "js-sha256";
 import * as fs from "fs";
 import {client} from "./DiscordFrontend";
-
-const version = "1.0.0-beta";
+import {version} from "../../../Main";
 
 // noinspection ExceptionCaughtLocallyJS
 export class MessageHandler {
