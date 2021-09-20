@@ -1,12 +1,15 @@
-import {FinalizedWord} from "../../api/Word";
+import {FinalizedWord, Word} from "../../api/Word";
 import {Card} from "../backend/CardDatabase";
 
-export function toCard(word: FinalizedWord): Card {
-    let Front, Back;
-
-    Front = word.manualPos ?
+export function getCardFront(word: Word | FinalizedWord): string {
+    return word.manualPos ?
         word.text + ' (' + word.manualPos + ')' :
         word.text;
+}
+
+export function toCard(word: FinalizedWord): Card {
+    let Front = getCardFront(word);
+    let Back;
 
     const backBuilder: string[] = [];
     const beautify = require('js-beautify').html;
