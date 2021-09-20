@@ -1,6 +1,8 @@
 import {
     Card,
-    CardDatabase, CardNotFoundError,
+    CardDatabase,
+    CardNotFoundError,
+    DatabaseError,
     DuplicateCardError
 } from "./CardDatabase";
 
@@ -34,8 +36,8 @@ export class Anki implements CardDatabase {
                 await this.createDeck(deckName);
             }
         } catch (e) {
-            if (e.message.includes('ECONNREFUSED')) throw new Error(
-                'Anki not started!');
+            if (e.message.includes('ECONNREFUSED')) throw new DatabaseError(
+                'Cannot reach Anki server!');
         }
 
         return this.instances.get(deckName);
@@ -134,7 +136,7 @@ export class Anki implements CardDatabase {
         else throw new CardNotFoundError(card.Front);
     }
 
-    public async find(Front: string): Promise<Card|undefined> {
+    public async find(Front: string): Promise<Card | undefined> {
         let id = await this.findID(Front);
 
         if (id) {

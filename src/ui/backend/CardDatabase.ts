@@ -54,11 +54,3 @@ export class DuplicateCardError extends DatabaseError {
         this.name = 'DuplicateCardError';
     }
 }
-
-export class DatabaseServerError extends DatabaseError {
-    constructor(database: CardDatabase, card: Card) {
-        super(
-            `${database.constructor.name} server errored for "${card.Front}"!`);
-        this.name = 'DatabaseServerError';
-    }
-}

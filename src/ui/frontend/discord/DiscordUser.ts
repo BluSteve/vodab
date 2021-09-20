@@ -4,13 +4,17 @@ import {CardDatabase} from "../../backend/CardDatabase";
 import {adminId} from "../../Config";
 import {MessageHandler} from "./MessageHandler";
 
+export class UserSettings {
+    readingMode: boolean = false;
+    darkMode: boolean = false;
+    deckName: string = ANKI_WORDS;
+}
+
 export class DiscordUser {
     static users: Map<string, DiscordUser> = new Map();
     userId: string;
     isAdmin: boolean;
-    readingMode: boolean = false;
-    darkMode: boolean = false;
-    deckName: string = ANKI_WORDS;
+    settings: UserSettings = new UserSettings();
     private db: CardDatabase | undefined; // lazy loaded on request
 
     private constructor(userId: string) {
@@ -34,7 +38,7 @@ export class DiscordUser {
 
     async updateDB(): Promise<void> {
         if (this.isAdmin) {
-            this.db = await Anki.getInstance(this.deckName);
+            this.db = await Anki.getInstance(this.settings.deckName);
         }
         // todo add for non-admin
     }

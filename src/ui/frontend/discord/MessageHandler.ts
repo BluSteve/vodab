@@ -8,12 +8,13 @@ import {Wordnik} from "../../../api/services/Wordnik";
 import {Linguee} from "../../../api/services/Linguee";
 import {toCard, toString} from "../WordConverter";
 import {MessageAttachment} from "discord.js";
-import {DiscordUser} from "./DiscordUser";
+import {DiscordUser, UserSettings} from "./DiscordUser";
 import {sha256} from "js-sha256";
 import * as fs from "fs";
 
 const version = "1.0.0-beta";
 
+// noinspection ExceptionCaughtLocallyJS
 export class MessageHandler {
     private static EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣',
         '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
@@ -26,18 +27,20 @@ export class MessageHandler {
     predicate: string;
     predList: string[]
     user: DiscordUser;
+    private readonly settings: UserSettings;
 
     constructor(message, user: DiscordUser) {
         this.message = message;
         this.content = message.content.trim();
         this.user = user;
+        this.settings = user.settings;
         this.send = content => message.channel.send(content);
 
         if (this.content.startsWith('!')) {
             this.command = this.content.split(' ')[0].substr(1);
             this.predicate = this.content.split(' ').slice(1).join(' ');
         }
-        else if (this.user.readingMode) {
+        else if (this.settings.readingMode) {
             this.predicate = this.content;
         }
 
@@ -93,56 +96,67 @@ export class MessageHandler {
             await this.send(`Pong! Version = ${version}`);
         }
         else {
-            if (this.command === 'r') {
-                await this.toggleReadingMode();
-            }
+            try {
+                if (this.command === 'r') {
+                    await this.toggleReadingMode();
+                }
 
-            else if (/^cd$/.test(this.command)) {
-                await this.changeDeck(this.predicate);
-            }
+                else if (this.command === 'cd') {
+                    await this.changeDeck(this.predicate);
+                }
 
-            else if (/^lw$/.test(this.command)) {
-                await this.listWords();
-            }
+                else if (this.command === 'ps') {
+                    await this.printSettings();
+                }
 
-            else if (/^downw$/.test(this.command)) {
-                await this.downloadWords();
-            }
+                else if (/^lw$/.test(this.command)) {
+                    await this.listWords();
+                }
 
-            else {
-                for (const rawWord of this.predList) {
-                    try {
-                        if (/^de?$/.test(this.command)) {
-                            await this.defineWord(rawWord);
+                else if (/^downw$/.test(this.command)) {
+                    await this.downloadWords();
+                }
+                else {
+                    for (const rawWord of this.predList) {
+                        try {
+                            if (/^de?$/.test(this.command)) {
+                                await this.defineWord(rawWord);
+                            }
+
+                            else if (/^fw$/.test(this.command)) {
+                                await this.findWord(rawWord);
+                            }
+
+                            else if (/^wf?e?l?$/.test(this.command) ||
+                                this.settings.readingMode && !this.command) {
+                                await this.addWord(rawWord);
+                                isDBModified = true;
+                            }
+
+                            else if (/^mwf?$/.test(this.command)) {
+                                await this.addManualWord(rawWord);
+                                isDBModified = true;
+                            }
+
+                            else if (/^delw$/.test(this.command)) {
+                                await this.deleteWord(rawWord);
+                                isDBModified = true;
+                            }
+                        } catch (e) {
+                            if (e instanceof DatabaseError ||
+                                e instanceof WordError) {
+                                console.error(e);
+                                await this.send(`Error: ${e.message}`);
+                            }
+                            else throw e;
                         }
-
-                        else if (/^fw$/.test(this.command)) {
-                            await this.findWord(rawWord);
-                        }
-
-                        else if (/^wf?e?l?$/.test(this.command) ||
-                            this.user.readingMode && !this.command) {
-                            await this.addWord(rawWord);
-                            isDBModified = true;
-                        }
-
-                        else if (/^mwf?$/.test(this.command)) {
-                            await this.addManualWord(rawWord);
-                            isDBModified = true;
-                        }
-
-                        else if (/^delw$/.test(this.command)) {
-                            await this.deleteWord(rawWord);
-                            isDBModified = true;
-                        }
-                    } catch (e) {
-                        if (e instanceof DatabaseError ||
-                            e instanceof WordError) {
-                            console.error(e);
-                            await this.send(`Error: ${e.message}`);
-                        }
-                        else throw e;
                     }
+                }
+            } catch (e) {
+                if (e instanceof DatabaseError ||
+                    e instanceof WordError) {
+                    console.error(e);
+                    await this.send(`Error: ${e.message}`);
                 }
             }
         }
@@ -227,14 +241,15 @@ export class MessageHandler {
     }
 
     private async changeDeck(newDeckName: string) {
-        this.user.deckName = newDeckName;
+        this.settings.deckName = newDeckName;
         await this.user.updateDB();
         this.send(`Deck name changed to ${newDeckName}`);
     }
 
     private async toggleReadingMode() {
-        this.user.readingMode = !this.user.readingMode;
-        if (this.user.readingMode) await this.send('Reading mode activated');
+        this.settings.readingMode = !this.settings.readingMode;
+        if (this.settings.readingMode) await this.send(
+            'Reading mode activated');
         else await this.send('Reading mode deactivated');
     }
 
@@ -257,7 +272,7 @@ export class MessageHandler {
         else {
             const filename = `./image/${sha256(card.Back)}.png`;
             await MessageHandler.toImage(card.Back, filename);
-            if (this.user.darkMode) await invertImage(filename);
+            if (this.settings.darkMode) await invertImage(filename);
             await this.send({
                 'content': `"${rawWord}":\n`,
                 files: [filename]
@@ -315,7 +330,7 @@ export class MessageHandler {
 
             // I'm feeling lucky
             if (/^wf?l$/.test(this.command) ||
-                this.user.readingMode && !this.command) {
+                this.settings.readingMode && !this.command) {
                 finalWord = word.finalized(0, 0);
             }
             else finalWord = await this.finalizeWord(word);
@@ -369,5 +384,10 @@ export class MessageHandler {
         const db = await this.user.getDB();
         await db.delete(rawWord);
         await this.send(`"${rawWord}" deleted successfully!`);
+    }
+
+    private async printSettings() {
+        await this.send(this.message.author.tag +
+            ': \n```' + JSON.stringify(this.settings, null, 2) + '```');
     }
 }
