@@ -1,7 +1,6 @@
 import {
     Card,
-    CardDatabase,
-    CardNotFoundError,
+    CardDatabase, CardNotFoundError,
     DuplicateCardError
 } from "./CardDatabase";
 
@@ -11,11 +10,9 @@ const ankiurl = 'http://127.0.0.1:8765';
 const modelName = 'Basic';
 
 export const ANKI_WORDS = 'Vodab Words';
-export const ANKI_OTHERS = 'Vodab Others';
 
 export class Anki implements CardDatabase {
     private static instances: Map<string, Anki> = new Map();
-    private static DECK_NOT_FOUND = 'deck was not found';
     private static DUPLICATE_NOTE = 'cannot create note because it is a duplicate';
     private readonly deckName: string;
 
@@ -42,11 +39,6 @@ export class Anki implements CardDatabase {
         }
 
         return this.instances.get(deckName);
-    }
-
-    private static async sync(): Promise<void> {
-        await axios.post(ankiurl, {'action': 'sync', version});
-        console.log('Anki synced!');
     }
 
     private static async createDeck(deck: string): Promise<void> {
@@ -124,47 +116,53 @@ export class Anki implements CardDatabase {
     }
 
     public async update(card: Card): Promise<void> {
-        const action = 'updateNoteFields';
         const id = await this.findID(card.Front);
-        await axios.post(ankiurl,
-            {
-                action, version, 'params': {
-                    'note': {
-                        id,
-                        'fields': {'Back': card.Back}
+
+        if (id) {
+            const action = 'updateNoteFields';
+            await axios.post(ankiurl,
+                {
+                    action, version, 'params': {
+                        'note': {
+                            id,
+                            'fields': {'Back': card.Back}
+                        }
                     }
-                }
-            });
+                });
+        }
+
+        throw new CardNotFoundError(card.Front);
     }
 
     public async find(Front: string): Promise<Card> {
-        let notes = [await this.findID(Front)];
+        let id = await this.findID(Front);
 
-        const action = 'notesInfo';
-        const response = await axios.post(ankiurl, {
-            action, version, 'params': {notes}
-        });
-
-        const noteFound = response.data.result[0];
-        return {
-            'Front': noteFound.fields.Front.value,
-            'Back': noteFound.fields.Back.value
-        };
-    }
-
-    public async delete(Front: string): Promise<boolean> {
-        try {
-            let notes = [await this.findID(Front)];
-
-            const action = 'deleteNotes';
-            await axios.post(ankiurl, {
-                action, version, 'params': {notes}
+        if (id) {
+            const action = 'notesInfo';
+            const response = await axios.post(ankiurl, {
+                action, version, 'params': {'notes': [id]}
             });
 
-            return true;
-        } catch (error) {
-            if (error instanceof CardNotFoundError) return false;
+            const noteFound = response.data.result[0];
+            return {
+                'Front': noteFound.fields.Front.value,
+                'Back': noteFound.fields.Back.value
+            };
         }
+        else return undefined;
+    }
+
+    public async delete(Front: string): Promise<void> {
+        let id = await this.findID(Front);
+
+        if (id) {
+            const action = 'deleteNotes';
+            await axios.post(ankiurl, {
+                action, version, 'params': {'notes': [id]}
+            });
+        }
+
+        throw new CardNotFoundError(Front);
     }
 
     public async list(): Promise<Card[]> {
@@ -191,7 +189,12 @@ export class Anki implements CardDatabase {
         return (await this.list()).map(card => card.Front);
     }
 
-    private async findID(Front: string): Promise<number> {
+    public async sync(): Promise<void> {
+        await axios.post(ankiurl, {'action': 'sync', version});
+        console.log('Anki synced!');
+    }
+
+    private async findID(Front: string): Promise<number | undefined> {
         let action = 'findNotes';
         let response = await axios.post(ankiurl, {
             action, version, 'params': {
@@ -200,7 +203,7 @@ export class Anki implements CardDatabase {
         });
 
         const noteIDsFound = response.data.result;
-        if (noteIDsFound.length === 0) throw new CardNotFoundError(Front);
+        if (noteIDsFound.length === 0) return undefined;
         else if (noteIDsFound.length > 1) throw new DuplicateCardError(Front);
 
         return noteIDsFound[0];

@@ -11,17 +11,20 @@ export interface CardDatabase {
 
     addAll(cards: Card[]): Promise<void>;
 
+    // fails loudly
     update(card: Card): Promise<void>;
 
-    // fails loudly
+    // fails quietly
     find(Front: string): Promise<Card>;
 
-    // fails quietly
-    delete(Front: string): Promise<boolean>;
+    // fails loudly
+    delete(Front: string): Promise<void>;
 
     list(): Promise<Card[]>;
 
     listFront(): Promise<string[]>;
+
+    sync(): Promise<void>;
 }
 
 export class DatabaseError extends Error {
