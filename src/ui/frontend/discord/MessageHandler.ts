@@ -358,7 +358,8 @@ export class MessageHandler {
                 }
                 else break;
             }
-            msg = msg.slice(0, msg.length - 3);
+
+            if (counter === list.length) msg = msg.slice(0, msg.length - 3);
             await this.send(msg + '```');
         }
     }
