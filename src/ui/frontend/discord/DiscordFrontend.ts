@@ -1,4 +1,4 @@
-import {discordToken} from '../../Config';
+import {discordToken} from '../../UIConfig';
 import {DiscordUser} from "./DiscordUser";
 
 const {Client} = require('discord.js');

@@ -1,7 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore'
-import {firebaseConfig} from "../Config";
-import {ANKI_WORDS, AnkiHandler} from "./AnkiAdd";
+import {firebaseConfig} from "../UIConfig";
 import {Card} from "./CardDatabase";
 
 export const FIREBASE_WORDS = 'words';
@@ -108,16 +107,4 @@ export class FirebaseHandler {
         this.prev = (await this.doc.get()).get(this.colName);
         if (!this.prev) this.prev = [];
     }
-}
-
-async function main() {
-    let ah = new AnkiHandler(ANKI_WORDS);
-    let ankilist = await ah.list();
-    let fh = await FirebaseHandler.create('324202540025643009', FIREBASE_WORDS);
-    let toSave = [];
-    for (const i of ankilist) {
-        let item = {'Front': i.Front, 'Back': i.Back};
-        toSave.push(item);
-    }
-    await fh.saveMany(toSave, true);
 }

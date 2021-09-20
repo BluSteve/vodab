@@ -1,7 +1,7 @@
 // stores persistent info on the user
 import {Anki, ANKI_WORDS} from "../../backend/Anki";
 import {CardDatabase} from "../../backend/CardDatabase";
-import {adminId} from "../../Config";
+import {adminId} from "../../UIConfig";
 import {MessageHandler} from "./MessageHandler";
 
 export class UserSettings {

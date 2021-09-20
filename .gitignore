@@ -10,8 +10,8 @@ src/api/APIConfig.ts
 .env.local
 .env.*.local
 src/api/services/key.json
-src/ui/Config.ts
-src/ui/Config.js
+src/ui/UIConfig.ts
+src/ui/UIConfig.js
 # Log files
 npm-debug.log*
 yarn-debug.log*
