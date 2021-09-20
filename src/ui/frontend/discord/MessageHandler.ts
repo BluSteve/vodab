@@ -83,20 +83,6 @@ export class MessageHandler {
         return Word.of(rawWordInput, serviceRequest, manualPos);
     }
 
-    private static async toImage(html: string, filename: string) {
-        const puppeteer = require('puppeteer');
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.setViewport({
-            width: 720,
-            height: 960,
-            deviceScaleFactor: 1,
-        });
-        await page.setContent(html);
-        await page.screenshot({path: `${filename}`});
-        await browser.close();
-    }
-
     async handleMessage() {
         let isDBModified = false;
 
@@ -131,7 +117,7 @@ export class MessageHandler {
                 else {
                     for (const rawWord of this.predList) {
                         try {
-                            if (/^de?$/.test(this.command)) {
+                            if (/^de?l?i?$/.test(this.command)) {
                                 await this.defineWord(rawWord);
                             }
 
@@ -175,6 +161,30 @@ export class MessageHandler {
         }
 
         if (isDBModified) await (await this.user.getDB()).sync();
+    }
+
+    private async sendImage(rawWord: string, html: string): Promise<void> {
+        const filename = `./${sha256(html)}.png`;
+
+        const puppeteer = require('puppeteer');
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.setViewport({
+            width: 720,
+            height: 0,
+            deviceScaleFactor: 1,
+        });
+        await page.setContent(html);
+        await page.screenshot({path: `${filename}`, fullPage: true});
+        await browser.close();
+
+        if (this.settings.darkMode) await invertImage(filename);
+        await this.send({
+            'content': `"${rawWord}":\n`,
+            files: [filename]
+        });
+
+        fs.unlinkSync(filename);
     }
 
     private async reactSelect(word: Word, mt: MT): Promise<number> {
@@ -282,11 +292,25 @@ export class MessageHandler {
     }
 
     private async defineWord(rawWord: string) {
-        const word: Word = this.command === 'de' ?
+        const word: Word = /^del?i?$/.test(this.command) ?
             await MessageHandler.toWord(rawWord, true)
             : await MessageHandler.toWord(rawWord);
 
-        await this.sendLongString(toString(await this.finalizeWord(word)));
+        let finalWord;
+        if (/^de?li?$/.test(this.command)) {
+            finalWord = word.finalized(0, 0,
+                this.settings.senLimit,
+                this.settings.senCharLimit);
+        }
+        else finalWord = await this.finalizeWord(word);
+
+        if (/^de?l?i$/.test(this.command)) {
+            const card = toCard(finalWord);
+            await this.sendImage(rawWord, card.Back);
+        }
+        else {
+            await this.sendLongString(toString(finalWord));
+        }
     }
 
     private async findWord(rawWord: string) {
@@ -298,14 +322,7 @@ export class MessageHandler {
             await this.send(`"${rawWord}" is found but has empty definition.`);
         }
         else {
-            const filename = `./${sha256(card.Back)}.png`;
-            await MessageHandler.toImage(card.Back, filename);
-            if (this.settings.darkMode) await invertImage(filename);
-            await this.send({
-                'content': `"${rawWord}":\n`,
-                files: [filename]
-            });
-            fs.unlinkSync(filename);
+            await this.sendImage(rawWord, card.Back);
         }
     }
 
