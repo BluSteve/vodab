@@ -79,8 +79,6 @@ export function toCard(word: FinalizedWord): Card {
 }
 
 export function toString(word: FinalizedWord): string {
-    let str = '>>> ';
-
     const strBuilder: string[] = [];
     let firstLine = '**' + word.text + '**';
 
@@ -126,11 +124,5 @@ export function toString(word: FinalizedWord): string {
         }
     }
 
-    str += strBuilder.join('\n\n');
-
-    if (str.length > 2000) {
-        str = str.slice(0, 1999);
-        str += '…';
-    }
-    return str;
+    return strBuilder.join('\n\n');
 }

@@ -280,7 +280,7 @@ export class MessageHandler {
             await MessageHandler.toWord(rawWord, true)
             : await MessageHandler.toWord(rawWord);
 
-        await this.send(toString(await this.finalizeWord(word)));
+        await this.sendLongString(toString(await this.finalizeWord(word)));
     }
 
     private async findWord(rawWord: string) {
@@ -358,7 +358,7 @@ export class MessageHandler {
             }
             else finalWord = await this.finalizeWord(word);
 
-            await this.send(toString(finalWord));
+            await this.sendLongString(toString(finalWord));
             console.log(finalWord)
             const card = toCard(finalWord);
 
@@ -412,5 +412,21 @@ export class MessageHandler {
     private async printSettings() {
         await this.send(this.message.author.tag +
             ': \n```' + JSON.stringify(this.settings, null, 2) + '```');
+    }
+
+    private async sendLongString(str: string,
+                                 prefix: string = '>>> '): Promise<void> {
+        const array: string[] = []
+        const discordLimit = 2000;
+        while (str) {
+            array.push(
+                prefix + str.slice(0, discordLimit - 1 - prefix.length) + '…');
+            str = str.slice(discordLimit - 1);
+        }
+
+        array[array.length - 1] = array[array.length - 1].slice(0,
+            array[array.length - 1].length - 1);
+
+        for (const s of array) await this.send(s);
     }
 }
