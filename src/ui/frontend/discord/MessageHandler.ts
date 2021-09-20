@@ -91,7 +91,7 @@ export class MessageHandler {
     }
 
     private static safetyCheck(rawWord: string) {
-        if (!/^[\p{L}\-]*$/u.test(rawWord)) {
+        if (!/^[\p{L}\-() ]*$/u.test(rawWord)) {
             throw new Error(`Invalid characters in ${rawWord}`);
         }
     }
@@ -132,34 +132,34 @@ export class MessageHandler {
                         try {
                             if (/^de?l?i?$/.test(this.command)) {
                                 MessageHandler.safetyCheck(rawWord);
-                                await this.defineWord(rawWord);
+                                this.defineWord(rawWord);
                             }
 
                             else if (/^wf?e?l?$/.test(this.command) ||
                                 this.settings.readingMode && !this.command) {
                                 MessageHandler.safetyCheck(rawWord);
-                                await this.addWord(rawWord);
+                                this.addWord(rawWord);
                                 isDBModified = true;
                             }
 
                             else if (/^fw$/.test(this.command)) {
-                                await this.findWord(rawWord);
+                                this.findWord(rawWord);
                             }
 
                             else if (/^mwf?$/.test(this.command)) {
-                                await this.addManualWord(rawWord);
+                                this.addManualWord(rawWord);
                                 isDBModified = true;
                             }
 
                             else if (/^delw$/.test(this.command)) {
-                                await this.deleteWord(rawWord);
+                                this.deleteWord(rawWord);
                                 isDBModified = true;
                             }
                         } catch (e) {
                             if (e instanceof DatabaseError ||
                                 e instanceof WordError) {
                                 console.error(e);
-                                await this.send(`Error: ${e.message}`);
+                                this.send(`Error ("${rawWord}"): ${e.message}`);
                             }
                             else throw e;
                         }
@@ -175,7 +175,7 @@ export class MessageHandler {
             }
         }
 
-        if (isDBModified) await (await this.user.getDB()).sync();
+        // if (isDBModified) await (await this.user.getDB()).sync();
     }
 
     private async sendImage(rawWord: string, html: string): Promise<void> {
@@ -399,9 +399,10 @@ export class MessageHandler {
             }
             else finalWord = await this.finalizeWord(word);
 
-            await this.sendLongString(toString(finalWord));
             console.log(finalWord)
             const card = toCard(finalWord);
+            await this.sendImage(rawWord, card.Back);
+
 
             if (match) {
                 await db.update(card);

@@ -36,6 +36,7 @@ export class Anki implements CardDatabase {
                 await this.createDeck(deckName);
             }
         } catch (e) {
+            console.error(e);
             if (e.message.includes('ECONNREFUSED')) throw new DatabaseError(
                 'Cannot reach Anki server!');
         }
@@ -171,7 +172,7 @@ export class Anki implements CardDatabase {
         let action = 'findNotes';
         let response = await axios.post(ankiurl, {
             action, version, 'params': {
-                'query': `deck:"${this.deckName}"`
+                'query': `deck:"${this.deckName}" is:new`
             }
         });
         let notes = response.data.result;
