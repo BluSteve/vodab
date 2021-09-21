@@ -1,9 +1,4 @@
-import {
-    MeaningError,
-    TranslationError,
-    WordInfo,
-    WordService
-} from "./services/WordService";
+import {WordService} from "./services/WordService";
 import {clone, urlify} from "../utils/Utils";
 
 export enum MT {
@@ -66,19 +61,6 @@ export class Word {
                 console.log(service.constructor.name, elapsed);
             }
         }
-
-        let meaningExpected = false;
-        let translationExpected = false;
-        for (const req of reqs) {
-            const infoWanted = req[1];
-            if (infoWanted & WordInfo.meaning) meaningExpected = true;
-            if (infoWanted & WordInfo.translation) translationExpected = true;
-        }
-
-        if (meaningExpected && word.possMeanings.length === 0)
-            throw new MeaningError(word);
-        if (translationExpected && word.possTranslations.length === 0)
-            throw new TranslationError(word);
 
         return word;
     }

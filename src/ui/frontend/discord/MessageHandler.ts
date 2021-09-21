@@ -61,35 +61,6 @@ export class MessageHandler {
         return undefined;
     }
 
-    private static async toWord(rawWord: string, extended = false) {
-        let s = rawWord.split('(');
-        let rawWordInput = s[0].trim();
-        let manualPos = s.length > 1 ? s[1].split(')')[0].trim() : undefined;
-
-        let serviceRequest: ServiceRequest[];
-        const freeDictionaryAPI = FreeDictionaryAPI.getInstance();
-        const lingueeSen = Linguee.getInstance(Language.en, Language.fr);
-        const lingueeTrans = Linguee.getInstance(Language.en, Language.zh);
-        if (extended) {
-            const wordnik = Wordnik.getInstance();
-            serviceRequest = [
-                [freeDictionaryAPI, WordInfo.meaning],
-                [wordnik, WordInfo.def + WordInfo.pos],
-                [lingueeSen, WordInfo.sens],
-                [wordnik, WordInfo.sens],
-                [lingueeTrans, WordInfo.translation]
-            ];
-        }
-        else {
-            serviceRequest = [
-                [freeDictionaryAPI, WordInfo.meaning],
-                [lingueeSen, WordInfo.sens],
-                [lingueeTrans, WordInfo.translation]
-            ];
-        }
-        return Word.of(rawWordInput, serviceRequest, manualPos);
-    }
-
     private static safetyCheck(rawWord: string) {
         if (!/^[\p{L}\-() ]*$/u.test(rawWord)) {
             throw new Error(`Invalid characters in ${rawWord}`);
@@ -159,6 +130,7 @@ export class MessageHandler {
                             if (e instanceof DatabaseError ||
                                 e instanceof WordError) {
                                 console.error(e);
+                                console.log('asdf')
                                 await this.send(
                                     `Error ("${rawWord}"): ${e.message}`);
                             }
@@ -167,9 +139,10 @@ export class MessageHandler {
                     }
                 }
             } catch (e) {
-                if (e instanceof DatabaseError ||
-                    e instanceof WordError) {
+                if (e instanceof DatabaseError || e instanceof WordError) {
                     console.error(e);
+                    console.log('asdf3')
+
                     await this.send(`Error: ${e.message}`);
                 }
                 else throw e;
@@ -177,6 +150,52 @@ export class MessageHandler {
         }
 
         if (isDBModified) await (await this.user.getDB()).sync();
+    }
+
+    private async toWord(rawWord: string, extended = false) {
+        let s = rawWord.split('(');
+        let rawWordInput = s[0].trim();
+        let manualPos = s.length > 1 ? s[1].split(')')[0].trim() : undefined;
+
+        let reqs: ServiceRequest[];
+        const freeDictionaryAPI = FreeDictionaryAPI.getInstance();
+        const lingueeSen = Linguee.getInstance(Language.en, Language.fr);
+        const lingueeTrans = Linguee.getInstance(Language.en, Language.zh);
+        if (extended) {
+            const wordnik = Wordnik.getInstance();
+            reqs = [
+                [freeDictionaryAPI, WordInfo.meaning],
+                [wordnik, WordInfo.def + WordInfo.pos],
+                [lingueeSen, WordInfo.sens],
+                [wordnik, WordInfo.sens],
+                [lingueeTrans, WordInfo.translation]
+            ];
+        }
+        else {
+            reqs = [
+                [freeDictionaryAPI, WordInfo.meaning],
+                [lingueeSen, WordInfo.sens],
+                [lingueeTrans, WordInfo.translation]
+            ];
+        }
+
+        let meaningExpected = false;
+        let translationExpected = false;
+        for (const req of reqs) {
+            const infoWanted = req[1];
+            if (infoWanted & WordInfo.meaning) meaningExpected = true;
+            if (infoWanted & WordInfo.translation) translationExpected = true;
+        }
+
+        const word = await Word.of(rawWordInput, reqs, manualPos);
+
+        if (meaningExpected && word.possMeanings.length === 0)
+            await this.send(`No definitions are found for "${word.rawInput}"!`);
+        if (translationExpected && word.possTranslations.length === 0)
+            await this.send(
+                `No translations are found for "${word.rawInput}"!`);
+
+        return word;
     }
 
     private async sendImage(rawWord: string, html: string): Promise<void> {
@@ -309,8 +328,8 @@ export class MessageHandler {
 
     private async defineWord(rawWord: string) {
         const word: Word = /^del?i?$/.test(this.command) ?
-            await MessageHandler.toWord(rawWord, true)
-            : await MessageHandler.toWord(rawWord);
+            await this.toWord(rawWord, true)
+            : await this.toWord(rawWord);
 
         let finalWord;
         if (/^de?li?$/.test(this.command)) {
@@ -386,15 +405,17 @@ export class MessageHandler {
         // if forced or no existing alike words
         if (/^wfe?l?$/.test(this.command) || !match) {
             const word = (/^wf?el?$/.test(this.command)) ?
-                await MessageHandler.toWord(rawWord, true) :
-                await MessageHandler.toWord(rawWord);
+                await this.toWord(rawWord, true) :
+                await this.toWord(rawWord);
 
             let finalWord: FinalizedWord;
 
             // I'm feeling lucky
             if (/^wf?l$/.test(this.command) ||
                 this.settings.readingMode && !this.command) {
-                finalWord = word.finalized(0, 0,
+                const mindex = word.possMeanings.length > 0 ? 0 : undefined;
+                const tindex = word.possTranslations.length > 0 ? 0 : undefined;
+                finalWord = word.finalized(mindex, tindex,
                     this.settings.senLimit,
                     this.settings.senCharLimit);
             }
