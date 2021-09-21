@@ -26,20 +26,6 @@ export class APILimitExceededError extends WordError {
     }
 }
 
-export class MeaningError extends WordError {
-    constructor(word: Word) {
-        super(`No definitions are found for "${word.rawInput}"!`);
-        this.name = 'DefinitionError';
-    }
-}
-
-export class TranslationError extends WordError {
-    constructor(word: Word) {
-        super(`No translations are found for "${word.rawInput}"!`);
-        this.name = 'TranslationError';
-    }
-}
-
 export class InfoError extends Error {
     constructor(word: Word) {
         super(`Invalid info request for "${word.rawInput}"!`);

@@ -19,12 +19,9 @@ export function toCard(word: FinalizedWord): Card {
     const translation = word.translation;
 
     if (meaning) {
-        for (let x of [meaning.ipa, meaning.pos, meaning.def, meaning.ety]) {
+        for (let x of [meaning.ipa, meaning.pos, meaning.def]) {
             if (x) backBuilder.push(x);
         }
-
-        if (meaning.syns && meaning.syns.length > 0) backBuilder.push(
-            meaning.syns.slice(0, 5).join(', '));
     }
 
     if (translation) {
@@ -34,6 +31,11 @@ export function toCard(word: FinalizedWord): Card {
     }
 
     if (meaning) {
+        if (meaning.ety) backBuilder.push(meaning.ety);
+
+        if (meaning.syns && meaning.syns.length > 0) backBuilder.push(
+            meaning.syns.slice(0, 5).join(', '));
+
         // Italicizes the word, case-insensitive.
         if (meaning.sens && meaning.sens.length > 0) {
             let senList = '';
@@ -43,7 +45,7 @@ export function toCard(word: FinalizedWord): Card {
                 const sen = meaning.sens[i];
                 senList += '<li> ';
                 senList += sen.replace(new RegExp(word.text, 'gi'),
-                    a => `<i>${a}</i>`);
+                    a => `<u>${a}</u>`);
                 if (i < meaning.sens.length - 1) senList += DNL;
                 senList += ' </li>';
             }
@@ -95,11 +97,6 @@ export function toString(word: FinalizedWord): string {
         if (meaning.ipa) strBuilder.push('Pronunciation: ' + meaning.ipa);
 
         if (meaning.def) strBuilder.push('Definition: *' + meaning.def + '*');
-
-        if (meaning.ety) strBuilder.push('Etymology: *' + meaning.ety + '*');
-
-        if (meaning.syns && meaning.syns.length > 0) strBuilder.push(
-            'Synonyms: *' + meaning.syns.join(", ") + '*');
     }
 
     if (translation) {
@@ -108,6 +105,11 @@ export function toString(word: FinalizedWord): string {
     }
 
     if (meaning) {
+        if (meaning.ety) strBuilder.push('Etymology: *' + meaning.ety + '*');
+
+        if (meaning.syns && meaning.syns.length > 0) strBuilder.push(
+            'Synonyms: *' + meaning.syns.join(", ") + '*');
+
         if (meaning.sens && meaning.sens.length > 0) strBuilder.push(
             'Examples: \n' + meaning.sens.map(s => {
                 return `- *${s}*`

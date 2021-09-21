@@ -1,9 +1,4 @@
-import {
-    getValidInfo,
-    Language,
-    WordInfo,
-    WordService
-} from "./WordService";
+import {getValidInfo, Language, WordInfo, WordService} from "./WordService";
 import {Word} from "../Word";
 import {Translate} from "@google-cloud/translate/build/src/v2";
 
@@ -33,7 +28,7 @@ export class GoogleTranslate implements WordService {
         infoWanted = getValidInfo(this, infoWanted, word);
 
         const projectId = 'vodab-322711';
-        const keyFilename = 'key.json';
+        const keyFilename = 'src/api/services/key.json';
         const translate = new Translate({projectId, keyFilename});
 
         let fsrc: string = this.convertLanguage(this.srclang);

@@ -6,10 +6,7 @@ import {
 } from "../../../utils/Utils";
 import {FinalizedWord, MT, ServiceRequest, Word} from "../../../api/Word";
 import {Card, DatabaseError} from "../../backend/CardDatabase";
-import {Language, WordError, WordInfo} from "../../../api/services/WordService";
-import {FreeDictionaryAPI} from "../../../api/services/FreeDictionaryAPI";
-import {Wordnik} from "../../../api/services/Wordnik";
-import {Linguee} from "../../../api/services/Linguee";
+import {WordError, WordInfo} from "../../../api/services/WordService";
 import {toCard, toString} from "../WordConverter";
 import {
     DiscordAPIError,
@@ -24,6 +21,8 @@ import * as fs from "fs";
 import {client} from "./DiscordFrontend";
 import {version} from "../../../Main";
 import _ = require("lodash");
+
+type reqTypes = 'normal' | 'extended' | 'basic';
 
 // noinspection ExceptionCaughtLocallyJS
 export class MessageHandler {
@@ -101,12 +100,12 @@ export class MessageHandler {
                 else {
                     for (const rawWord of this.predList) {
                         try {
-                            if (/^de?l?i?$/.test(this.command)) {
+                            if (/^d[eb]?l?i?$/.test(this.command)) {
                                 MessageHandler.safetyCheck(rawWord);
                                 await this.defineWord(rawWord);
                             }
 
-                            else if (/^wf?e?l?$/.test(this.command) ||
+                            else if (/^wf?[eb]?l?$/.test(this.command) ||
                                 this.settings.readingMode && !this.command) {
                                 MessageHandler.safetyCheck(rawWord);
                                 await this.addWord(rawWord);
@@ -130,7 +129,6 @@ export class MessageHandler {
                             if (e instanceof DatabaseError ||
                                 e instanceof WordError) {
                                 console.error(e);
-                                console.log('asdf')
                                 await this.send(
                                     `Error ("${rawWord}"): ${e.message}`);
                             }
@@ -141,8 +139,6 @@ export class MessageHandler {
             } catch (e) {
                 if (e instanceof DatabaseError || e instanceof WordError) {
                     console.error(e);
-                    console.log('asdf3')
-
                     await this.send(`Error: ${e.message}`);
                 }
                 else throw e;
@@ -152,31 +148,20 @@ export class MessageHandler {
         if (isDBModified) await (await this.user.getDB()).sync();
     }
 
-    private async toWord(rawWord: string, extended = false) {
+    private async toWord(rawWord: string, reqType: reqTypes) {
         let s = rawWord.split('(');
         let rawWordInput = s[0].trim();
         let manualPos = s.length > 1 ? s[1].split(')')[0].trim() : undefined;
 
         let reqs: ServiceRequest[];
-        const freeDictionaryAPI = FreeDictionaryAPI.getInstance();
-        const lingueeSen = Linguee.getInstance(Language.en, Language.fr);
-        const lingueeTrans = Linguee.getInstance(Language.en, Language.zh);
-        if (extended) {
-            const wordnik = Wordnik.getInstance();
-            reqs = [
-                [freeDictionaryAPI, WordInfo.meaning],
-                [wordnik, WordInfo.def + WordInfo.pos],
-                [lingueeSen, WordInfo.sens],
-                [wordnik, WordInfo.sens],
-                [lingueeTrans, WordInfo.translation]
-            ];
+        if (reqType === 'normal') {
+            reqs = this.user.settings.normalReq;
         }
-        else {
-            reqs = [
-                [freeDictionaryAPI, WordInfo.meaning],
-                [lingueeSen, WordInfo.sens],
-                [lingueeTrans, WordInfo.translation]
-            ];
+        else if (reqType === 'extended') {
+            reqs = this.user.settings.extendedReq;
+        }
+        else if (reqType === 'basic') {
+            reqs = this.user.settings.basicReq;
         }
 
         let meaningExpected = false;
@@ -327,19 +312,27 @@ export class MessageHandler {
     }
 
     private async defineWord(rawWord: string) {
-        const word: Word = /^del?i?$/.test(this.command) ?
-            await this.toWord(rawWord, true)
-            : await this.toWord(rawWord);
+        let reqType;
+        if (/^dl?i?$/.test(this.command)) {
+            reqType = 'normal';
+        }
+        else if (/^del?i?$/.test(this.command)) {
+            reqType = 'extended';
+        }
+        else if (/^dbl?i?$/.test(this.command)) {
+            reqType = 'basic';
+        }
+        const word: Word = await this.toWord(rawWord, reqType);
 
         let finalWord;
-        if (/^de?li?$/.test(this.command)) {
+        if (/^d[eb]?li?$/.test(this.command)) {
             finalWord = word.finalized(0, 0,
                 this.settings.senLimit,
                 this.settings.senCharLimit);
         }
         else finalWord = await this.finalizeWord(word);
 
-        if (/^de?l?i$/.test(this.command)) {
+        if (/^d[eb]?l?i$/.test(this.command)) {
             const card = toCard(finalWord);
             await this.sendImage(rawWord, card.Back);
         }
@@ -403,15 +396,23 @@ export class MessageHandler {
         let match: Card = await db.find(rawWord);
 
         // if forced or no existing alike words
-        if (/^wfe?l?$/.test(this.command) || !match) {
-            const word = (/^wf?el?$/.test(this.command)) ?
-                await this.toWord(rawWord, true) :
-                await this.toWord(rawWord);
+        if (/^wf[eb]?l?$/.test(this.command) || !match) {
+            let reqType;
+            if (/^wf?l?i?$/.test(this.command)) {
+                reqType = 'normal';
+            }
+            else if (/^wf?ei?$/.test(this.command)) {
+                reqType = 'extended';
+            }
+            else if (/^wf?bi?$/.test(this.command)) {
+                reqType = 'basic';
+            }
+            const word: Word = await this.toWord(rawWord, reqType);
 
             let finalWord: FinalizedWord;
 
             // I'm feeling lucky
-            if (/^wf?l$/.test(this.command) ||
+            if (/^wf?[eb]?l$/.test(this.command) ||
                 this.settings.readingMode && !this.command) {
                 const mindex = word.possMeanings.length > 0 ? 0 : undefined;
                 const tindex = word.possTranslations.length > 0 ? 0 : undefined;
