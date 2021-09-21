@@ -29,18 +29,19 @@ export class Linguee implements WordService {
     }
 
     async process(word: Word, infoWanted?: number): Promise<void> {
-        infoWanted = getValidInfo(this, infoWanted, word);
+        const baseUrl = `http://localhost:8000`;
 
+        infoWanted = getValidInfo(this, infoWanted, word);
         const wtext = word.urlable;
+
         const wantTrans: boolean = (infoWanted & WordInfo.trans +
             WordInfo.transSens) > 0;
-
         let lingueeTranslations: Translation[];
         if (wantTrans) lingueeTranslations = [];
 
         try {
             if (infoWanted & WordInfo.trans) {
-                const url = `https://linguee-api-v2.herokuapp.com/api/v2/` +
+                const url = `${baseUrl}/api/v2/` +
                     `translations?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
                 const response = await axios.get(url);
 
@@ -55,7 +56,7 @@ export class Linguee implements WordService {
             }
 
             if (infoWanted & WordInfo.transSens + WordInfo.sens) {
-                const url = `https://linguee-api-v2.herokuapp.com/api/v2/` +
+                const url = `${baseUrl}/api/v2/` +
                     `external_sources?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
                 const response = await axios.get(url);
 
