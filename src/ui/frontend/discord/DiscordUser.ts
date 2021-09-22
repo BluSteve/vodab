@@ -19,7 +19,7 @@ export class UserSettings {
     toLanguage: Language = Language.zh;
     normalReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
-        [Linguee.getInstance(Language.en, Language.fr), WordInfo.sens],
+        [Wordnik.getInstance(), WordInfo.sens],
         [Linguee.getInstance(Language.en, this.toLanguage),
             WordInfo.translation]
     ];
