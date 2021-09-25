@@ -42,7 +42,9 @@ export class Wordnik implements WordService {
                 }
                 else if (response.status !== 200) return;
 
-                const result: any[] = response.data;
+                const result: any[] = word.manualPos ? response.data.filter(
+                        item => item.partOfSpeech === word.manualPos) :
+                    response.data;
 
                 // sometimes the text is unavailable (api bug?)
                 word.possMeanings.push(...
