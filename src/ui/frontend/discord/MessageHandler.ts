@@ -166,6 +166,7 @@ export class MessageHandler {
 
         let meaningExpected = false;
         let translationExpected = false;
+        console.log(reqs)
         for (const req of reqs) {
             const infoWanted = req[1];
             if (infoWanted & WordInfo.meaning) meaningExpected = true;
@@ -398,13 +399,13 @@ export class MessageHandler {
         // if forced or no existing alike words
         if (/^wf[eb]?l?$/.test(this.command) || !match) {
             let reqType;
-            if (/^wf?l?i?$/.test(this.command)) {
+            if (/^wf?l?$/.test(this.command)) {
                 reqType = 'normal';
             }
-            else if (/^wf?ei?$/.test(this.command)) {
+            else if (/^wf?el?$/.test(this.command)) {
                 reqType = 'extended';
             }
-            else if (/^wf?bi?$/.test(this.command)) {
+            else if (/^wf?bl?$/.test(this.command)) {
                 reqType = 'basic';
             }
             const word: Word = await this.toWord(rawWord, reqType);
@@ -425,7 +426,6 @@ export class MessageHandler {
             console.log(finalWord)
             const card = toCard(finalWord);
             await this.sendImage(rawWord, card.Back);
-
 
             if (match) {
                 await db.update(card);

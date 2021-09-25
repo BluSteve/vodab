@@ -172,7 +172,7 @@ export class Anki implements CardDatabase {
         let action = 'findNotes';
         let response = await axios.post(ankiurl, {
             action, version, 'params': {
-                'query': `deck:"${this.deckName}" is:new`
+                'query': `deck:"${this.deckName}"`
             }
         });
         let notes = response.data.result;
