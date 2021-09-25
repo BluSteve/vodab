@@ -9,6 +9,7 @@ import {FreeDictionaryAPI} from "../../../api/services/FreeDictionaryAPI";
 import {Wordnik} from "../../../api/services/Wordnik";
 import {Linguee} from "../../../api/services/Linguee";
 import {GoogleTranslate} from "../../../api/services/GoogleTranslate";
+import {WordsAPI} from "../../../api/services/WordsAPI";
 
 export class UserSettings {
     readingMode: boolean = false;
@@ -17,6 +18,12 @@ export class UserSettings {
     senLimit: number = 5;
     senCharLimit: number = 250;
     toLanguage: Language = Language.zh;
+    basicReq: ServiceRequest[] = [
+        [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
+        [Wordnik.getInstance(), WordInfo.sens],
+        [GoogleTranslate.getInstance(Language.en, this.toLanguage),
+            WordInfo.trans]
+    ];
     normalReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
         [Wordnik.getInstance(), WordInfo.sens],
@@ -25,17 +32,10 @@ export class UserSettings {
     ];
     extendedReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
-        [Wordnik.getInstance(), WordInfo.def + WordInfo.pos],
-        [Linguee.getInstance(Language.en, Language.fr), WordInfo.sens],
-        [Wordnik.getInstance(), WordInfo.sens],
+        [WordsAPI.getInstance(), WordInfo.meaning - WordInfo.ety],
+        [Wordnik.getInstance(), WordInfo.def + WordInfo.pos + WordInfo.sens],
         [Linguee.getInstance(Language.en, this.toLanguage),
             WordInfo.translation]
-    ];
-    basicReq: ServiceRequest[] = [
-        [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
-        [Wordnik.getInstance(), WordInfo.sens],
-        [GoogleTranslate.getInstance(Language.en, this.toLanguage),
-            WordInfo.trans]
     ];
 }
 

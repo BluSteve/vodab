@@ -166,7 +166,6 @@ export class MessageHandler {
 
         let meaningExpected = false;
         let translationExpected = false;
-        console.log(reqs)
         for (const req of reqs) {
             const infoWanted = req[1];
             if (infoWanted & WordInfo.meaning) meaningExpected = true;
