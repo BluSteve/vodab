@@ -15,7 +15,7 @@ import {
     MessageAttachment,
     MessageSelectMenu
 } from "discord.js";
-import {DiscordUser, UserSettings} from "./DiscordUser";
+import {DiscordUser} from "./DiscordUser";
 import {sha256} from "js-sha256";
 import * as fs from "fs";
 import {client} from "./DiscordFrontend";
@@ -33,20 +33,18 @@ export class MessageHandler {
     predicate: string;
     predList: string[]
     user: DiscordUser;
-    private readonly settings: UserSettings;
 
     private constructor(message: Message, user: DiscordUser) {
         this.message = message;
         this.content = message.content.trim();
         this.user = user;
-        this.settings = user.settings;
         this.send = content => message.channel.send(content);
 
         if (this.content.startsWith('!')) {
             this.command = this.content.split(' ')[0].substr(1);
             this.predicate = this.content.split(' ').slice(1).join(' ');
         }
-        else if (this.settings.readingMode) {
+        else if (this.user.settings.readingMode) {
             this.predicate = this.content;
         }
 
@@ -55,7 +53,7 @@ export class MessageHandler {
 
     static getInstance(message: Message,
                        user: DiscordUser): MessageHandler | undefined {
-        if (message.content.trim().startsWith('!'))
+        if (message.content.trim().startsWith('!') || user.settings.readingMode)
             return new MessageHandler(message, user);
         return undefined;
     }
@@ -105,8 +103,10 @@ export class MessageHandler {
                                 await this.defineWord(rawWord);
                             }
 
+
                             else if (/^wf?[eb]?l?$/.test(this.command) ||
-                                this.settings.readingMode && !this.command) {
+                                this.user.settings.readingMode &&
+                                !this.command) {
                                 MessageHandler.safetyCheck(rawWord);
                                 await this.addWord(rawWord);
                                 isDBModified = true;
@@ -198,7 +198,7 @@ export class MessageHandler {
         await page.screenshot({path: `${filename}`, fullPage: true});
         await browser.close();
 
-        if (this.settings.darkMode) await invertImage(filename);
+        if (this.user.settings.darkMode) await invertImage(filename);
         await this.send({
             'content': `"${rawWord}":\n`,
             files: [filename]
@@ -294,19 +294,19 @@ export class MessageHandler {
             tindex = word.possTranslations.length > 1 ?
                 await this.reactSelect(word, MT.Translation) : 0;
         }
-        return word.finalized(mindex, tindex, this.settings.senLimit,
-            this.settings.senCharLimit);
+        return word.finalized(mindex, tindex, this.user.settings.senLimit,
+            this.user.settings.senCharLimit);
     }
 
     private async changeDeck(newDeckName: string) {
-        this.settings.deckName = newDeckName;
+        this.user.settings.deckName = newDeckName;
         await this.user.updateDB();
         this.send(`Deck name changed to "${newDeckName}".`);
     }
 
     private async toggleReadingMode() {
-        this.settings.readingMode = !this.settings.readingMode;
-        if (this.settings.readingMode) await this.send(
+        this.user.settings.readingMode = !this.user.settings.readingMode;
+        if (this.user.settings.readingMode) await this.send(
             'Reading mode activated.');
         else await this.send('Reading mode deactivated.');
     }
@@ -322,13 +322,14 @@ export class MessageHandler {
         else if (/^dbl?i?$/.test(this.command)) {
             reqType = 'basic';
         }
+        else if (this.user.settings.readingMode) reqType = 'normal';
         const word: Word = await this.toWord(rawWord, reqType);
 
         let finalWord;
         if (/^d[eb]?li?$/.test(this.command)) {
             finalWord = word.finalized(0, 0,
-                this.settings.senLimit,
-                this.settings.senCharLimit);
+                this.user.settings.senLimit,
+                this.user.settings.senCharLimit);
         }
         else finalWord = await this.finalizeWord(word);
 
@@ -407,18 +408,20 @@ export class MessageHandler {
             else if (/^wf?bl?$/.test(this.command)) {
                 reqType = 'basic';
             }
+            else if (this.user.settings.readingMode) reqType = 'normal';
+
             const word: Word = await this.toWord(rawWord, reqType);
 
             let finalWord: FinalizedWord;
 
             // I'm feeling lucky
             if (/^wf?[eb]?l$/.test(this.command) ||
-                this.settings.readingMode && !this.command) {
+                this.user.settings.readingMode && !this.command) {
                 const mindex = word.possMeanings.length > 0 ? 0 : undefined;
                 const tindex = word.possTranslations.length > 0 ? 0 : undefined;
                 finalWord = word.finalized(mindex, tindex,
-                    this.settings.senLimit,
-                    this.settings.senCharLimit);
+                    this.user.settings.senLimit,
+                    this.user.settings.senCharLimit);
             }
             else finalWord = await this.finalizeWord(word);
 
@@ -475,7 +478,7 @@ export class MessageHandler {
 
     private async printSettings() {
         await this.send(this.message.author.tag +
-            ': \n```' + JSON.stringify(this.settings, null, 2) + '```');
+            ': \n```' + JSON.stringify(this.user.settings, null, 2) + '```');
     }
 
     private async changeSettings(json: string): Promise<void> {

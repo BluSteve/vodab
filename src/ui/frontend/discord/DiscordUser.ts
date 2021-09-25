@@ -9,7 +9,6 @@ import {FreeDictionaryAPI} from "../../../api/services/FreeDictionaryAPI";
 import {Wordnik} from "../../../api/services/Wordnik";
 import {Linguee} from "../../../api/services/Linguee";
 import {GoogleTranslate} from "../../../api/services/GoogleTranslate";
-import {WordsAPI} from "../../../api/services/WordsAPI";
 
 export class UserSettings {
     readingMode: boolean = false;
@@ -32,8 +31,8 @@ export class UserSettings {
     ];
     extendedReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
-        [WordsAPI.getInstance(), WordInfo.meaning - WordInfo.ety],
         [Wordnik.getInstance(), WordInfo.def + WordInfo.pos + WordInfo.sens],
+        [Linguee.getInstance(Language.en, Language.fr), WordInfo.sens],
         [Linguee.getInstance(Language.en, this.toLanguage),
             WordInfo.translation]
     ];
