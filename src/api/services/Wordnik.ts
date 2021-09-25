@@ -6,7 +6,7 @@ import {
 } from "./WordService";
 import {Meaning, Word} from "../Word";
 import axios from "axios";
-import {arrayUnique, urlify} from "../../utils/Utils";
+import {urlify} from "../../utils/Utils";
 import {wordnikToken} from "../APIConfig";
 
 export class Wordnik implements WordService {
@@ -83,8 +83,7 @@ export class Wordnik implements WordService {
                 let sens: string[];
                 if (!result.examples) sens = [];
                 else {
-                    sens = arrayUnique(result.examples.map(item => item.text),
-                        true);
+                    sens = result.examples.map(item => item.text);
                 }
 
                 if (word.possMeanings.length === 0) {

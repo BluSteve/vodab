@@ -1,4 +1,3 @@
-import {toString} from "./ui/frontend/WordConverter";
 import {FreeDictionaryAPI} from "./api/services/FreeDictionaryAPI";
 import {GoogleTranslate} from "./api/services/GoogleTranslate";
 import {Language, WordInfo} from "./api/services/WordService";
@@ -8,7 +7,7 @@ import {Word} from "./api/Word";
 import {printAll} from "./utils/Utils";
 
 async function main() {
-    const raw = 'forlorn';
+    const raw = 'train';
 
     const fdapi = FreeDictionaryAPI.getInstance();
     const gt = GoogleTranslate.getInstance(Language.en, Language.zh);
@@ -17,14 +16,10 @@ async function main() {
     const linguee2 = Linguee.getInstance(Language.en, Language.zh);
 
     let word = await Word.of(raw, [
-        [FreeDictionaryAPI.getInstance(),
-            WordInfo.meaning],
-        [Wordnik.getInstance(),
-            WordInfo.def + WordInfo.pos + WordInfo.sens],
-        [Linguee.getInstance(Language.en, Language.zh),
-            WordInfo.translation + WordInfo.sens]]);
-    let a = word.finalized(0, 0);
-    printAll(word);
+        [fdapi, WordInfo.meaning - WordInfo.ety],
+        [wordnik, WordInfo.sens]]);
+    let a = word.finalized(0, undefined);
+    printAll(a);
 
     const card = {'Front': 'abc', 'Back': 'def'};
     const card1 = {'Front': 'abc', 'Back': 'imposter'};
@@ -40,8 +35,6 @@ async function main() {
     // const anki = await Anki.getInstance('asdf');
     // await anki.update(actualCard);
 
-    const str = toString(a);
-    console.log(str)
 }
 
 main().then();

@@ -1,5 +1,5 @@
 import {WordService} from "./services/WordService";
-import {clone, urlify} from "../utils/Utils";
+import {arrayUnique, clone, urlify} from "../utils/Utils";
 
 export enum MT {
     Meaning, Translation
@@ -101,11 +101,13 @@ export class Word {
 
         if (fw.meaning) {
             if (fw.meaning.sens) {
-                fw.meaning.sens = filterSens(fw.meaning.sens, i => i.length);
+                fw.meaning.sens = filterSens(arrayUnique(fw.meaning.sens, true),
+                    i => i.length);
             }
 
             if (fw.meaning.syns) {
-                fw.meaning.syns = clone(fw.meaning.syns.slice(0, senLimit));
+                fw.meaning.syns = clone(
+                    arrayUnique(fw.meaning.syns, true).slice(0, senLimit));
             }
         }
 
