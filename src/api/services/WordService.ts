@@ -4,9 +4,8 @@ export interface WordService {
     readonly paid: boolean;
     readonly quota: number; // per hour
     readonly infoAvail: number;
-    readonly infoDefault: number;
 
-    process(word: Word, infoWanted?: number): Promise<void>;
+    process(word: Word, infoWanted: number): Promise<void>;
 }
 
 /**
@@ -72,6 +71,5 @@ export function getValidInfo(ws: WordService, infoWanted: number,
     if ((infoWanted | ws.infoAvail) !== ws.infoAvail) {
         throw new InfoError(word);
     }
-    if (!infoWanted) return ws.infoDefault;
     return infoWanted;
 }

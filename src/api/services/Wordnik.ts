@@ -14,7 +14,6 @@ export class Wordnik implements WordService {
     paid = true;
     quota = 100;
     infoAvail = WordInfo.def + WordInfo.pos + WordInfo.sens;
-    infoDefault = this.infoAvail;
 
     private constructor() {
     }
@@ -25,7 +24,7 @@ export class Wordnik implements WordService {
         else return this.instance;
     }
 
-    async process(word: Word, infoWanted?: number): Promise<void> {
+    async process(word: Word, infoWanted: number): Promise<void> {
         infoWanted = getValidInfo(this, infoWanted, word);
 
         const raw = word.urlable.toLocaleLowerCase();
@@ -33,11 +32,9 @@ export class Wordnik implements WordService {
         if (infoWanted & WordInfo.def + WordInfo.pos) {
             const url = `https://api.wordnik.com/v4/word.json/${raw}` +
                 `/definitions?limit=10&sourceDictionaries=ahd-5%2Ccentury&api_key=${wordnikToken}`;
-            const response = await axios.get(url, {
-                validateStatus: function () {
-                    return true;
-                }
+            const response = await axios.get(url).catch(() => {
             });
+
             if (response) {
                 if (response.status === 429) {
                     throw new APILimitExceededError(

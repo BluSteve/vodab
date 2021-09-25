@@ -7,7 +7,6 @@ export class GoogleTranslate implements WordService {
     paid = true;
     quota = 1666;
     infoAvail = WordInfo.trans;
-    infoDefault = this.infoAvail;
     srclang: Language;
     dstlang: Language;
 
@@ -24,7 +23,7 @@ export class GoogleTranslate implements WordService {
         return this.instances.get(langs);
     }
 
-    async process(word: Word, infoWanted?:number): Promise<void> {
+    async process(word: Word, infoWanted: number): Promise<void> {
         infoWanted = getValidInfo(this, infoWanted, word);
 
         const projectId = 'vodab-322711';

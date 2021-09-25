@@ -13,7 +13,6 @@ export class Linguee implements WordService {
     paid = false;
     quota = Infinity;
     infoAvail = WordInfo.translation + WordInfo.sens;
-    infoDefault = WordInfo.translation;
     srclang: Language;
     dstlang: Language;
 
@@ -34,7 +33,7 @@ export class Linguee implements WordService {
         return str.replace(/\[\.\.\.] /g, '');
     }
 
-    async process(word: Word, infoWanted?: number): Promise<void> {
+    async process(word: Word, infoWanted: number): Promise<void> {
         const baseUrl = `https://vodab-linguee.herokuapp.com/`;
 
         infoWanted = getValidInfo(this, infoWanted, word);

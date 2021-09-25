@@ -1,8 +1,4 @@
-import {
-    getValidInfo,
-    WordInfo,
-    WordService
-} from "./WordService";
+import {getValidInfo, WordInfo, WordService} from "./WordService";
 import {Meaning, Word} from "../Word";
 import axios from "axios";
 
@@ -11,7 +7,6 @@ export class FreeDictionaryAPI implements WordService {
     paid = false;
     quota = Infinity;
     infoAvail = WordInfo.meaning;
-    infoDefault = this.infoAvail;
 
     private constructor() {
     }
@@ -22,7 +17,7 @@ export class FreeDictionaryAPI implements WordService {
         else return this.instance;
     }
 
-    async process(word: Word, infoWanted?: number): Promise<void> {
+    async process(word: Word, infoWanted: number): Promise<void> {
         infoWanted = getValidInfo(this, infoWanted, word);
 
         const url = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
