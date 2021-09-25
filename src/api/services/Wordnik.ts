@@ -11,7 +11,7 @@ import {wordnikToken} from "../APIConfig";
 
 export class Wordnik implements WordService {
     private static instance: Wordnik;
-    paid = true;
+    paid = false;
     quota = 100;
     infoAvail = WordInfo.def + WordInfo.pos + WordInfo.sens;
 

@@ -33,6 +33,8 @@ export class UserSettings {
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
         [Wordnik.getInstance(), WordInfo.def + WordInfo.pos + WordInfo.sens],
         [Linguee.getInstance(Language.en, Language.fr), WordInfo.sens],
+        [GoogleTranslate.getInstance(Language.en, this.toLanguage),
+            WordInfo.trans],
         [Linguee.getInstance(Language.en, this.toLanguage),
             WordInfo.translation]
     ];

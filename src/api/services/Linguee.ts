@@ -120,6 +120,9 @@ export class Linguee implements WordService {
                         for (let translation of lingueeTranslations) {
                             translation.transSens = transSens.slice(); // shallow copy
                         }
+                        for (let prevTrans of word.possTranslations) {
+                            prevTrans.transSens.push(...transSens);
+                        }
                     }
                 }
             }
