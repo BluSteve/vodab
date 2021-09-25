@@ -31,7 +31,7 @@ export class Wordnik implements WordService {
 
         if (infoWanted & WordInfo.def + WordInfo.pos) {
             const url = `https://api.wordnik.com/v4/word.json/${raw}` +
-                `/definitions?limit=10&sourceDictionaries=ahd-5%2Ccentury&api_key=${wordnikToken}`;
+                `/definitions?useCanonical=true&api_key=${wordnikToken}`;
             const response = await axios.get(url).catch(() => {
             });
 
