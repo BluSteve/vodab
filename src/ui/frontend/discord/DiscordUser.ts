@@ -9,6 +9,7 @@ import {FreeDictionaryAPI} from "../../../api/services/FreeDictionaryAPI";
 import {Wordnik} from "../../../api/services/Wordnik";
 import {Linguee} from "../../../api/services/Linguee";
 import {GoogleTranslate} from "../../../api/services/GoogleTranslate";
+import {MerriamWebster} from "../../../api/services/MerriamWebster";
 
 export class UserSettings {
     readingMode: boolean = false;
@@ -25,12 +26,14 @@ export class UserSettings {
     ];
     normalReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
+        [MerriamWebster.getInstance(), WordInfo.meaning - WordInfo.ipa],
         [Wordnik.getInstance(), WordInfo.sens],
         [Linguee.getInstance(Language.en, this.toLanguage),
             WordInfo.translation]
     ];
     extendedReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
+        [MerriamWebster.getInstance(), WordInfo.meaning - WordInfo.ipa],
         [Wordnik.getInstance(), WordInfo.def + WordInfo.pos + WordInfo.sens],
         [Linguee.getInstance(Language.en, Language.fr), WordInfo.sens],
         [GoogleTranslate.getInstance(Language.en, this.toLanguage),

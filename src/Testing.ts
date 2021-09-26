@@ -4,6 +4,7 @@ import {Language, WordInfo} from "./api/services/WordService";
 import {Linguee} from "./api/services/Linguee";
 import {Wordnik} from "./api/services/Wordnik";
 import {Word} from "./api/Word";
+import {MerriamWebster} from "./api/services/MerriamWebster";
 import {printAll} from "./utils/Utils";
 
 async function main() {
@@ -16,10 +17,10 @@ async function main() {
     const linguee2 = Linguee.getInstance(Language.en, Language.zh);
 
     let word = await Word.of(raw, [
-        [fdapi, WordInfo.meaning - WordInfo.ety],
-        [wordnik, WordInfo.sens]]);
-    let a = word.finalized(0, undefined);
-    printAll(a);
+            [MerriamWebster.getInstance(), WordInfo.meaning - WordInfo.ipa]],
+        'noun');
+    // let a = word.finalized(0, undefined);
+    printAll(word);
 
     const card = {'Front': 'abc', 'Back': 'def'};
     const card1 = {'Front': 'abc', 'Back': 'imposter'};

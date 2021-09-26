@@ -38,7 +38,7 @@ export class WordsAPI implements WordService {
             for (const result of results) {
                 const meaning: Meaning = {};
                 if (infoWanted & WordInfo.def) meaning.def =
-                    result.definition + ' (WordsAPI)';
+                    result.definition + ' (wordsapi)';
                 if (infoWanted & WordInfo.sens) meaning.sens = result.examples;
                 if (infoWanted & WordInfo.pos) meaning.pos =
                     result.partOfSpeech;
