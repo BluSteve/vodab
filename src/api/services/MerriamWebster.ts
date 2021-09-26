@@ -35,8 +35,9 @@ export class MerriamWebster implements WordService {
                 response.data.filter(item => item.fl === word.manualPos) :
                 response.data;
 
+            // todo move word text to meaning
             // corner case handwaved
-            word.text = results[0].hwi.hw;
+            // word.text = results[0].hwi.hw.replace(/\*/g, '');
 
             const dts = [];
 

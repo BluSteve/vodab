@@ -335,7 +335,7 @@ export class MessageHandler {
 
         if (/^d[eb]?l?i$/.test(this.command)) {
             const card = toCard(finalWord);
-            await this.sendImage(rawWord, card.Back);
+            await this.sendImage(word.text, card.Back);
         }
         else {
             await this.sendLongString(toString(finalWord));
@@ -427,7 +427,7 @@ export class MessageHandler {
 
             console.log(finalWord)
             const card = toCard(finalWord);
-            await this.sendImage(rawWord, card.Back);
+            await this.sendImage(word.text, card.Back);
 
             if (match) {
                 await db.update(card);

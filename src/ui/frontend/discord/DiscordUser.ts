@@ -16,7 +16,7 @@ export class UserSettings {
     darkMode: boolean = false;
     deckName: string = ANKI_WORDS;
     senLimit: number = 5;
-    senCharLimit: number = 250;
+    senCharLimit: number = 200;
     toLanguage: Language = Language.zh;
     basicReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
