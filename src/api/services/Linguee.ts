@@ -34,7 +34,7 @@ export class Linguee implements WordService {
     }
 
     async process(word: Word, infoWanted: number): Promise<void> {
-        const baseUrl = `https://vodab-linguee.herokuapp.com/`;
+        const baseUrl = `http://localhost:8000/`;
 
         infoWanted = getValidInfo(this, infoWanted, word);
         const wtext = word.urlable;
