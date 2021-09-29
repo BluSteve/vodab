@@ -1,7 +1,8 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore'
 import {firebaseConfig} from "../UIConfig";
-import {Card} from "./CardDatabase";
+import {sha256} from "js-sha256";
+import {Card, CardDatabase, CardNotFoundError} from "./CardDatabase";
 
 export const FIREBASE_WORDS = 'words';
 export const FIREBASE_OTHERS = 'others';
@@ -9,7 +10,7 @@ export const FIREBASE_OTHERS = 'others';
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-export class FirebaseHandler {
+export class FirebaseHandler implements CardDatabase{
     private readonly userId: string;
     private readonly colName: string;
     private prev: Card[];
@@ -19,8 +20,7 @@ export class FirebaseHandler {
         this.userId = userId;
         if (colName !== FIREBASE_WORDS && colName !== FIREBASE_OTHERS) {
             throw new Error('Invalid collection name!');
-        }
-        else this.colName = colName;
+        } else this.colName = colName;
         this.initialize().then();
     }
 
@@ -53,7 +53,7 @@ export class FirebaseHandler {
         await this.doc.set({[this.colName]: next}, {'merge': true});
     }
 
-    public find(Front: string): Card {
+    public async find(Front: string): Promise<Card | undefined>{
         let filtered = this.prev.filter(item => {
             return item.Front === Front;
         });
@@ -61,16 +61,15 @@ export class FirebaseHandler {
         if (filtered.length > 0) {
             if (filtered.length > 1) {
                 throw new Error('Duplicate found in firebase!');
-            }
-            else return filtered[0];
+            } else return filtered[0];
         }
-        return null;
+        else return undefined;
     }
 
-    public listFront(): string[] {
+    public async listFront(): Promise<string[]> {
         return this.prev.map(item => item.Front).sort(
-                    (a, b) => a.localeCompare(b, undefined,
-                        {sensitivity: 'base'}));
+            (a, b) => a.localeCompare(b, undefined,
+                {sensitivity: 'base'}));
     }
 
     public getList(): Card[] {
@@ -79,19 +78,18 @@ export class FirebaseHandler {
                 {sensitivity: 'base'}));
     }
 
-    public info(Front: string): string {
-        let f = this.find(Front);
+    public async info(Front: string): Promise<string> {
+        let f = await this.find(Front);
         return f ? f.Back : '';
     }
 
-    public async delete(Front: string): Promise<boolean> {
+    public async delete(Front: string): Promise<void> {
         let prevLength = this.prev.length;
         this.prev = this.prev.filter(item => {
-            return item.Front !== Front;
+            //return item.Front !== Front;
         });
-        if (prevLength === this.prev.length) return false;
+        if (prevLength === this.prev.length) throw new CardNotFoundError(Front);;
         await this.doc.set({[this.colName]: this.prev}, {'merge': true});
-        return true;
     }
 
     public async updateBack(Front: string, Back: string): Promise<void> {
@@ -106,5 +104,74 @@ export class FirebaseHandler {
         this.doc = db.collection('data').doc(this.userId);
         this.prev = (await this.doc.get()).get(this.colName);
         if (!this.prev) this.prev = [];
+    }
+
+    public async add(card: Card): Promise<void> {
+
+        this.doc.update({'words':firebase.firestore.FieldValue.arrayUnion(card)});
+
+    }
+
+    public async addAll(cards: Card[]): Promise<void> {
+        for(let i of cards) {
+            await this.add(i);
+        }
+    }
+
+    public async list(): Promise<Card[]> {
+        let cards:Card[] = [];
+        this.doc.get().then((doc) => {
+            if (doc.exists) {
+                console.log("exists");
+                for (const [key, value] of Object.entries(doc.data())) {
+                    for (const [key2, value2] of Object.entries(value)) {
+                        for(const [frontorback, text] of Object.entries(value)){
+                            let c = new Card();
+                            if(frontorback == "Front"){
+                                c.Front = text;
+                            }
+                            else{
+                                c.Back = text;
+                            }
+                            cards.push(c);
+                            console.log('added + ${c}');
+                        }
+                    }
+                }
+                return cards;
+
+            } else {
+                // doc.data() will be undefined in this case
+                console.log("No such document!");
+            }
+        }).catch((error) => {
+            console.log("Error getting document:", error);
+        });
+        return cards;
+    }
+
+    public async sync(): Promise<void> {
+        return Promise.resolve(undefined);
+    }
+
+    public async update(card: Card): Promise<void> {
+        let docRef = db.collection(this.userId).doc("words");
+        let array = this.list().then();
+        docRef.get().then(function(doc) {
+            if (doc.exists) {
+                for(let i in array){
+                    if(array[i].Front===card.Front){
+                        array[i]=card;
+                    }
+                }
+                docRef.set(array);
+
+            } else {
+                // doc.data() will be undefined in this case
+                console.log("No such document!");
+            }
+        }).catch(function(error) {
+            console.log("Error getting document:", error);
+        });
     }
 }

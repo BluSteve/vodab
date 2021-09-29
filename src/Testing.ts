@@ -6,6 +6,8 @@ import {Wordnik} from "./api/services/Wordnik";
 import {Word} from "./api/Word";
 import {MerriamWebster} from "./api/services/MerriamWebster";
 import {printAll} from "./utils/Utils";
+import {FirebaseHandler} from "./ui/backend/FirebaseAdd";
+
 
 async function main() {
     const raw = 'train';
@@ -20,11 +22,12 @@ async function main() {
             [MerriamWebster.getInstance(), WordInfo.meaning - WordInfo.ipa]],
         'noun');
     // let a = word.finalized(0, undefined);
-    printAll(word);
+    //printAll(word);
 
     const card = {'Front': 'abc', 'Back': 'def'};
     const card1 = {'Front': 'abc', 'Back': 'imposter'};
     const card2 = {'Front': 'abcasdf', 'Back': 'def'};
+    const card3 = {'Front': 'hunga', 'Back': 'bunga'};
     const cards = [card, card2];
     // await anki.add(card);
     // console.log(await anki.listFront());
@@ -35,6 +38,14 @@ async function main() {
     // console.log(actualCard)
     // const anki = await Anki.getInstance('asdf');
     // await anki.update(actualCard);
+    const fb = await FirebaseHandler.create("412389860683284481","words").then();
+    //console.log(fb.list());
+    let arr = await fb.list().then();
+    for (const capital of Object.entries(arr))
+        console.log(capital);
+    //await fb.add(card3);
+    //await fb.update(card1);
+
 
 }
 
