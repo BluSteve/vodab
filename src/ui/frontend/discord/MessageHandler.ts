@@ -107,7 +107,6 @@ export class MessageHandler {
                             else if (/^wf?[eb]?l?$/.test(this.command) ||
                                 this.user.settings.readingMode &&
                                 !this.command) {
-                                MessageHandler.safetyCheck(rawWord);
                                 await this.addWord(rawWord);
                                 isDBModified = true;
                             }
@@ -248,6 +247,8 @@ export class MessageHandler {
             }
         }
 
+        if (replyStr.length > 1996) replyStr = replyStr.slice(0, 1996) + '…';
+
         replyStr += '```';
 
         const selectMT = 'selectMT';
@@ -359,7 +360,7 @@ export class MessageHandler {
         let list = sortAlphabetical(
             await (await this.user.getDB()).listFront());
         if (list.length === 0) {
-            await this.send('Deck is empty');
+            await this.send('Deck is empty.');
         }
 
         let counter = 0;
@@ -394,6 +395,16 @@ export class MessageHandler {
 
     private async addWord(rawWord: string) {
         const db = await this.user.getDB();
+
+        const rawWordL = stringListify(rawWord, '::');
+        let manualSens: string[] = [];
+        if (rawWordL.length > 1) {
+            rawWord = rawWordL[0].trim();
+            manualSens.push(...rawWordL.slice(1).map(i => i.trim()));
+        }
+
+        MessageHandler.safetyCheck(rawWord);
+
         let match: Card = await db.find(rawWord);
 
         // if forced or no existing alike words
@@ -424,6 +435,14 @@ export class MessageHandler {
                     this.user.settings.senCharLimit);
             }
             else finalWord = await this.finalizeWord(word);
+
+            if (manualSens.length > 0) {
+                manualSens.forEach(
+                    sen => sen.replace(new RegExp(finalWord.text, 'gi'),
+                        a => `<u>${a}</u>`));
+                manualSens.push(...finalWord.meaning.sens);
+                finalWord.meaning.sens = manualSens;
+            }
 
             console.log(finalWord)
             const card = toCard(finalWord);
