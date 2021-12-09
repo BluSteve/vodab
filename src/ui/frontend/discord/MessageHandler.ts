@@ -1,20 +1,10 @@
 // transient class made to handle one message
-import {
-    invertImage,
-    sortAlphabetical,
-    stringListify
-} from "../../../utils/Utils";
+import {invertImage, sortAlphabetical, stringListify} from "../../../utils/Utils";
 import {FinalizedWord, MT, ServiceRequest, Word} from "../../../api/Word";
 import {Card, DatabaseError} from "../../backend/CardDatabase";
 import {WordError, WordInfo} from "../../../api/services/WordService";
 import {toCard, toString} from "../WordConverter";
-import {
-    DiscordAPIError,
-    Message,
-    MessageActionRow,
-    MessageAttachment,
-    MessageSelectMenu
-} from "discord.js";
+import {DiscordAPIError, Message, MessageActionRow, MessageAttachment, MessageSelectMenu} from "discord.js";
 import {DiscordUser} from "./DiscordUser";
 import {sha256} from "js-sha256";
 import * as fs from "fs";
@@ -103,7 +93,6 @@ export class MessageHandler {
                                 await this.defineWord(rawWord);
                             }
 
-
                             else if (/^wf?[eb]?l?$/.test(this.command) ||
                                 this.user.settings.readingMode &&
                                 !this.command) {
@@ -125,11 +114,9 @@ export class MessageHandler {
                                 isDBModified = true;
                             }
                         } catch (e) {
-                            if (e instanceof DatabaseError ||
-                                e instanceof WordError) {
+                            if (e instanceof DatabaseError || e instanceof WordError) {
                                 console.error(e);
-                                await this.send(
-                                    `Error ("${rawWord}"): ${e.message}`);
+                                await this.send(`Error ("${rawWord}"): ${e.message}`);
                             }
                             else throw e;
                         }
@@ -176,8 +163,7 @@ export class MessageHandler {
         if (meaningExpected && word.possMeanings.length === 0)
             await this.send(`No definitions are found for "${word.rawInput}"!`);
         if (translationExpected && word.possTranslations.length === 0)
-            await this.send(
-                `No translations are found for "${word.rawInput}"!`);
+            await this.send(`No translations are found for "${word.rawInput}"!`);
 
         return word;
     }
@@ -207,11 +193,11 @@ export class MessageHandler {
     }
 
     private async reactSelect(word: Word, mt: MT): Promise<number> {
-        let replyStr: string;
+        let replyStr: string = "";
         let mtCount: number;
 
         if (mt === MT.Meaning) mtCount = word.possMeanings.length;
-        if (mt === MT.Translation) mtCount = word.possTranslations.length;
+        else if (mt === MT.Translation) mtCount = word.possTranslations.length;
 
         const cancel = 'cancel';
         const options: {
@@ -219,12 +205,16 @@ export class MessageHandler {
             value: string
         }[] = [{label: '❌ Cancel ❌', value: cancel}];
 
+        if (mtCount >= 24) {
+            replyStr += "Multiple-choice option limit of 24 exceeded! Please try again with greater restrictions.";
+            mtCount = 24;
+        }
+
         if (mt === MT.Meaning) {
-            replyStr = `Multiple meanings of "${word.text}" found:\`\`\`\n`;
+            replyStr += `Multiple meanings of "${word.text}" found:\`\`\`\n`;
 
             for (let i = 0; i < mtCount; i++) {
-                replyStr += `${i + 1}. (${word.possMeanings[i].pos}) ` +
-                    `${word.possMeanings[i].def}\n`;
+                replyStr += `${i + 1}. (${word.possMeanings[i].pos}) ` + `${word.possMeanings[i].def}\n`;
 
                 options.push({
                     label: `${i + 1}. ${word.possMeanings[i].pos}`,
@@ -234,14 +224,13 @@ export class MessageHandler {
             }
         }
         else if (mt === MT.Translation) {
-            replyStr = `Multiple translations of "${word.text}" found:\`\`\`\n`;
+            replyStr += `Multiple translations of "${word.text}" found:\`\`\`\n`;
 
             for (let i = 0; i < mtCount; i++) {
                 replyStr += `${i + 1}. ${word.possTranslations[i].trans}\n`;
 
                 options.push({
-                    label: `${i + 1}. ${word.possTranslations[i].trans}`
-                        .slice(0, 100),
+                    label: `${i + 1}. ${word.possTranslations[i].trans}`.slice(0, 100),
                     value: `${i}`
                 });
             }
@@ -295,8 +284,7 @@ export class MessageHandler {
             tindex = word.possTranslations.length > 1 ?
                 await this.reactSelect(word, MT.Translation) : 0;
         }
-        return word.finalized(mindex, tindex, this.user.settings.senLimit,
-            this.user.settings.senCharLimit);
+        return word.finalized(mindex, tindex, this.user.settings.senLimit, this.user.settings.senCharLimit);
     }
 
     private async changeDeck(newDeckName: string) {

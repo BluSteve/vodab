@@ -1,4 +1,4 @@
-import {WordService} from "./services/WordService";
+import {WordError, WordService} from "./services/WordService";
 import {arrayUnique, clone, urlify} from "../utils/Utils";
 
 export enum MT {
@@ -69,8 +69,8 @@ export class Word {
                      senLimit = 5, senCharLimit = 150): FinalizedWord {
         if (mindex >= this.possMeanings.length ||
             tindex >= this.possTranslations.length ||
-            (mindex === undefined && tindex === undefined)) {
-            throw new Error('Invalid meaning/translation selection!');
+            (isNaN(mindex) && isNaN(tindex))) {
+            throw new WordError('Invalid meaning/translation selection!');
         }
 
         const fw: FinalizedWord = {
