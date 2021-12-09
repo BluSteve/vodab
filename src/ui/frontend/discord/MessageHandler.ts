@@ -425,9 +425,8 @@ export class MessageHandler {
             else finalWord = await this.finalizeWord(word);
 
             if (manualSens.length > 0) {
-                manualSens.forEach(
-                    sen => sen.replace(new RegExp(finalWord.text, 'gi'),
-                        a => `<u>${a}</u>`));
+                manualSens = manualSens.map(
+                    sen => "<b> " + sen.replace(new RegExp(finalWord.text, 'gi'), a => `<u>${a}</u>`) + " </b>");
                 manualSens.push(...finalWord.meaning.sens);
                 finalWord.meaning.sens = manualSens;
             }
