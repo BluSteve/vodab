@@ -48,8 +48,7 @@ export class Word {
         this.text = rawInput; // temporary until canonalization
     }
 
-    public static async of(rawWordInput: string, reqs: ServiceRequest[],
-                           manualPos?: string): Promise<Word> {
+    public static async of(rawWordInput: string, reqs: ServiceRequest[], manualPos?: string): Promise<Word> {
         const word: Word = new this(rawWordInput);
         word.manualPos = manualPos;
 
@@ -65,8 +64,8 @@ export class Word {
         return word;
     }
 
-    public finalized(mindex?: number, tindex?: number,
-                     senLimit = 5, senCharLimit = 150): FinalizedWord {
+    public finalized(mindex?: number, tindex?: number, senLimit = 5,
+                     senCharLimit = 150): FinalizedWord {
         if (mindex >= this.possMeanings.length ||
             tindex >= this.possTranslations.length ||
             (isNaN(mindex) && isNaN(tindex))) {
@@ -92,8 +91,7 @@ export class Word {
 
             let senCount = temp.length;
             if (senCount < senLimit) {
-                temp.push(...sens.sort((a, b) => len(a) - len(b))
-                    .slice(senCount, senLimit));
+                temp.push(...sens.sort((a, b) => len(a) - len(b)).slice(senCount, senLimit));
             }
 
             return clone(temp);
@@ -101,19 +99,16 @@ export class Word {
 
         if (fw.meaning) {
             if (fw.meaning.sens) {
-                fw.meaning.sens = filterSens(arrayUnique(fw.meaning.sens, true),
-                    i => i.length);
+                fw.meaning.sens = filterSens(arrayUnique(fw.meaning.sens, true), i => i.length);
             }
 
             if (fw.meaning.syns) {
-                fw.meaning.syns = clone(
-                    arrayUnique(fw.meaning.syns, true).slice(0, senLimit));
+                fw.meaning.syns = clone(arrayUnique(fw.meaning.syns, true).slice(0, senLimit));
             }
         }
 
         if (fw.translation && fw.translation.transSens) {
-            fw.translation.transSens =
-                filterSens(fw.translation.transSens, i => i.src.length);
+            fw.translation.transSens = filterSens(fw.translation.transSens, i => i.src.length);
         }
 
         return fw;

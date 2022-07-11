@@ -28,12 +28,15 @@ export class Linguee implements WordService {
     }
 
     async process(word: Word, infoWanted: number): Promise<void> {
-        const baseUrl = `http://localhost:8000/`;
+        const baseUrl = `http://192.168.31.153:8000/`;
         infoWanted = getValidInfo(this, infoWanted, word);
+
         const wtext = word.urlable;
         const wantTrans: boolean = (infoWanted & WordInfo.translation) > 0;
         let lingueeTranslations: Translation[];
+
         if (wantTrans) lingueeTranslations = [];
+
         if (infoWanted & WordInfo.trans) {
             const url = `${baseUrl}api/v2/` + `translations?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
             const response = await axios.get(url).catch(error => {
@@ -50,6 +53,7 @@ export class Linguee implements WordService {
                 }
             }
         }
+
         if (infoWanted & WordInfo.transSens + WordInfo.sens) {
             const url = `${baseUrl}api/v2/` + `external_sources?query=${wtext}&src=${this.srclang}&dst=${this.dstlang}`;
             const response = await axios.get(url).catch(error => {
@@ -98,6 +102,7 @@ export class Linguee implements WordService {
                 }
             }
         }
+
         if (wantTrans) {
             word.possTranslations.push(...lingueeTranslations);
         }

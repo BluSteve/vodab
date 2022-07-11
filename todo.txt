@@ -1,0 +1,12 @@
+small
+- help menu
+
+medium
+- add support for other languages for default translation
+- add wordsapi support
+- better change settings interface
+
+big
+- add support for remote ankiconnect instances that are port forwarded
+    associate these with the user
+- add firebase support
