@@ -9,7 +9,7 @@ import {DiscordUser} from "./DiscordUser";
 import {sha256} from "js-sha256";
 import * as fs from "fs";
 import {client} from "./DiscordFrontend";
-import {version} from "../../../Main";
+import {docs, version} from "../../../Main";
 import {Anki} from "../../backend/Anki";
 import _ = require("lodash");
 
@@ -58,6 +58,8 @@ export class MessageHandler {
 
         if (this.command === 'ping') {
             await this.send(`Pong! Version = ${version}`);
+        } else if (this.command === 'help') {
+            await this.send(docs);
         } else {
             try {
                 if (this.command === 'login') {

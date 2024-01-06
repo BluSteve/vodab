@@ -4,7 +4,14 @@
 
 ### Commands
 
-`r` Toggle reading mode
+`help` View documentation
+
+`ping` Check server status and version
+
+`login` Login to Anki with AnkiWeb account
+<br/><br/>
+
+`r` Toggle reading mode - defaults to `!wfl <word>` for any word you type
 
 `cd <deck name>` Change deck
 
