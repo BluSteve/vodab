@@ -449,7 +449,7 @@ export class MessageHandler {
         }
     }
 
-    private async addManualWord(rawWord: string) {
+    private async addManualWord(rawWord: string) { // todo sentence example for manual word
         let Front: string;
         let Back: string;
         [Front, Back] = stringListify(rawWord, '|');
