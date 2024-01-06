@@ -28,7 +28,7 @@ export class Linguee implements WordService {
     }
 
     async process(word: Word, infoWanted: number): Promise<void> {
-        const baseUrl = `http://192.168.31.153:8000/`;
+        const baseUrl = `http://localhost:8000/`;
         infoWanted = getValidInfo(this, infoWanted, word);
 
         const wtext = word.urlable;

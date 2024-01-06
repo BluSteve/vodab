@@ -2,7 +2,7 @@ import {Card, CardDatabase, CardNotFoundError, DatabaseError, DuplicateCardError
 
 const version = 6;
 const axios = require('axios').default;
-const ankiurl = 'http://127.0.0.1:8765';
+const ankiurl = 'http://localhost:8765';
 const modelName = 'Basic';
 
 export const ANKI_WORDS = 'Vodab Words';

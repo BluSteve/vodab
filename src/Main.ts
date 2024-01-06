@@ -10,7 +10,7 @@ export const docs = `## How to use
 
 \`ping\` Check server status and version
 
-\`login\` Login to Anki with AnkiWeb account
+\`login <email> <password>\` Login to Anki with AnkiWeb account
 
 
 \`r\` Toggle reading mode - defaults to \`!wfl <word>\` for any word you type
