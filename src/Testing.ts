@@ -1,6 +1,15 @@
+import {Anki} from "./ui/backend/Anki";
+
 async function main() {
-    const axios = require('axios').default;
-    await axios.post('http://127.0.0.1:8765', {'action': 'sync', 'version': 6})
+    // const axios = require('axios').default;
+    // await axios.post('http://127.0.0.1:8765', {'action': 'sync', 'version': 6})
+    try {
+        const anki = await Anki.getInstance('Vodab Words');
+        await anki.list()
+    } catch (e) {
+        console.log(e)
+    }
+
     // const raw = 'train';
     //
     // const fdapi = FreeDictionaryAPI.getInstance();

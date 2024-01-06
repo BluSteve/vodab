@@ -1,10 +1,4 @@
-import {
-    Card,
-    CardDatabase,
-    CardNotFoundError,
-    DatabaseError,
-    DuplicateCardError
-} from "./CardDatabase";
+import {Card, CardDatabase, CardNotFoundError, DatabaseError, DuplicateCardError} from "./CardDatabase";
 
 const version = 6;
 const axios = require('axios').default;
@@ -49,6 +43,14 @@ export class Anki implements CardDatabase {
         await axios.post(ankiurl, {
             action, version, 'params': {deck}
         });
+    }
+
+    public static async login(username: string, password: string): Promise<void> {
+        const url = 'http://localhost:5000/login';
+        const response = await axios.post(url, {username, password});
+        if (response.data !== username) {
+            throw new DatabaseError(response.data);
+        }
     }
 
     public async add(card: Card): Promise<void> {
@@ -169,6 +171,7 @@ export class Anki implements CardDatabase {
     }
 
     public async list(): Promise<Card[]> {
+        console.log('here')
         let action = 'findNotes';
         let response = await axios.post(ankiurl, {
             action, version, 'params': {
@@ -176,6 +179,7 @@ export class Anki implements CardDatabase {
             }
         });
         let notes = response.data.result;
+        console.log(notes)
         action = 'notesInfo';
         response = await axios.post(ankiurl, {
             action, version, 'params': {notes}

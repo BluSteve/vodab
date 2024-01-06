@@ -12,6 +12,8 @@ import {GoogleTranslate} from "../../../api/services/GoogleTranslate";
 import {MerriamWebster} from "../../../api/services/MerriamWebster";
 
 export class UserSettings {
+    ankiUsername: string = '';
+    ankiPassword: string = '';
     readingMode: boolean = false;
     darkMode: boolean = false;
     deckName: string = ANKI_WORDS;
@@ -70,15 +72,11 @@ export class DiscordUser {
     }
 
     async updateDB(): Promise<void> {
-        if (this.isAdmin) {
-            this.db = await Anki.getInstance(this.settings.deckName);
-        }
-        // todo add for non-admin
+        this.db = await Anki.getInstance(this.settings.deckName);
     }
 
     async handleMessage(message): Promise<void> {
-        const messageHandler: MessageHandler =
-            MessageHandler.getInstance(message, this);
+        const messageHandler: MessageHandler = MessageHandler.getInstance(message, this);
         if (messageHandler) await messageHandler.handleMessage();
     }
 }

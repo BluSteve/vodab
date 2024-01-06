@@ -10,6 +10,7 @@ import {sha256} from "js-sha256";
 import * as fs from "fs";
 import {client} from "./DiscordFrontend";
 import {version} from "../../../Main";
+import {Anki} from "../../backend/Anki";
 import _ = require("lodash");
 
 type reqTypes = 'normal' | 'extended' | 'basic';
@@ -33,16 +34,14 @@ export class MessageHandler {
         if (this.content.startsWith('!')) {
             this.command = this.content.split(' ')[0].substr(1);
             this.predicate = this.content.split(' ').slice(1).join(' ');
-        }
-        else if (this.user.settings.readingMode) {
+        } else if (this.user.settings.readingMode) {
             this.predicate = this.content;
         }
 
         this.predList = stringListify(this.predicate, ',,');
     }
 
-    static getInstance(message: Message,
-                       user: DiscordUser): MessageHandler | undefined {
+    static getInstance(message: Message, user: DiscordUser): MessageHandler | undefined {
         if (message.content.trim().startsWith('!') || user.settings.readingMode)
             return new MessageHandler(message, user);
         return undefined;
@@ -59,66 +58,55 @@ export class MessageHandler {
 
         if (this.command === 'ping') {
             await this.send(`Pong! Version = ${version}`);
-        }
-        else {
+        } else {
             try {
-                if (this.command === 'r') {
+                if (this.command === 'login') {
+                    const [username, password] = this.predicate.split(' ')
+                    await this.ankiLogin(username, password);
+                } else if (this.command === 'r') {
                     await this.toggleReadingMode();
-                }
-
-                else if (this.command === 'cd') {
-                    await this.changeDeck(this.predicate);
-                }
-
-                else if (this.command === 'ps') {
+                } else if (this.command === 'ps') {
                     await this.printSettings();
-                }
-
-                else if (this.command === 'cs') {
+                } else if (this.command === 'cs') {
                     await this.changeSettings(`\{${this.predicate}\}`);
-                }
+                } else {
+                    if (!this.user.settings.ankiUsername) {
+                        throw new DatabaseError('You are not logged in to Anki!');
+                    }
+                    await Anki.login(this.user.settings.ankiUsername, this.user.settings.ankiPassword);
 
-                else if (/^lw$/.test(this.command)) {
-                    await this.listWords();
-                }
-
-                else if (/^downw$/.test(this.command)) {
-                    await this.downloadWords();
-                }
-                else {
-                    for (const rawWord of this.predList) {
-                        try {
-                            if (/^d[eb]?l?i?$/.test(this.command)) {
-                                MessageHandler.safetyCheck(rawWord);
-                                await this.defineWord(rawWord);
+                    if (this.command === 'cd') {
+                        await this.changeDeck(this.predicate);
+                    } else if (/^lw$/.test(this.command)) {
+                        await this.listWords();
+                    } else if (/^downw$/.test(this.command)) {
+                        await this.downloadWords();
+                    } else {
+                        for (const rawWord of this.predList) {
+                            try {
+                                if (/^d[eb]?l?i?$/.test(this.command)) {
+                                    MessageHandler.safetyCheck(rawWord);
+                                    await this.defineWord(rawWord);
+                                } else if (/^wf?[eb]?l?$/.test(this.command) ||
+                                    this.user.settings.readingMode &&
+                                    !this.command) {
+                                    await this.addWord(rawWord);
+                                    isDBModified = true;
+                                } else if (/^fw$/.test(this.command)) {
+                                    await this.findWord(rawWord);
+                                } else if (/^mwf?$/.test(this.command)) {
+                                    await this.addManualWord(rawWord);
+                                    isDBModified = true;
+                                } else if (/^delw$/.test(this.command)) {
+                                    await this.deleteWord(rawWord);
+                                    isDBModified = true;
+                                }
+                            } catch (e) {
+                                if (e instanceof DatabaseError || e instanceof WordError) {
+                                    console.error(e);
+                                    await this.send(`Error ("${rawWord}"): ${e.message}`);
+                                } else throw e;
                             }
-
-                            else if (/^wf?[eb]?l?$/.test(this.command) ||
-                                this.user.settings.readingMode &&
-                                !this.command) {
-                                await this.addWord(rawWord);
-                                isDBModified = true;
-                            }
-
-                            else if (/^fw$/.test(this.command)) {
-                                await this.findWord(rawWord);
-                            }
-
-                            else if (/^mwf?$/.test(this.command)) {
-                                await this.addManualWord(rawWord);
-                                isDBModified = true;
-                            }
-
-                            else if (/^delw$/.test(this.command)) {
-                                await this.deleteWord(rawWord);
-                                isDBModified = true;
-                            }
-                        } catch (e) {
-                            if (e instanceof DatabaseError || e instanceof WordError) {
-                                console.error(e);
-                                await this.send(`Error ("${rawWord}"): ${e.message}`);
-                            }
-                            else throw e;
                         }
                     }
                 }
@@ -126,12 +114,19 @@ export class MessageHandler {
                 if (e instanceof DatabaseError || e instanceof WordError) {
                     console.error(e);
                     await this.send(`Error: ${e.message}`);
-                }
-                else throw e;
+                } else throw e;
             }
         }
 
         if (isDBModified) await (await this.user.getDB()).sync();
+    }
+
+    private async ankiLogin(username: string, password: string) {
+        await Anki.login(username, password)
+        this.user.settings.ankiUsername = username;
+        this.user.settings.ankiPassword = password;
+        await this.user.updateDB();
+        await this.send(`Logged in as ${username}!`);
     }
 
     private async toWord(rawWord: string, reqType: reqTypes) {
@@ -142,11 +137,9 @@ export class MessageHandler {
         let reqs: ServiceRequest[];
         if (reqType === 'normal') {
             reqs = this.user.settings.normalReq;
-        }
-        else if (reqType === 'extended') {
+        } else if (reqType === 'extended') {
             reqs = this.user.settings.extendedReq;
-        }
-        else if (reqType === 'basic') {
+        } else if (reqType === 'basic') {
             reqs = this.user.settings.basicReq;
         }
 
@@ -222,8 +215,7 @@ export class MessageHandler {
                     value: `${i}`
                 });
             }
-        }
-        else if (mt === MT.Translation) {
+        } else if (mt === MT.Translation) {
             replyStr += `Multiple translations of "${word.text}" found:\`\`\`\n`;
 
             for (let i = 0; i < mtCount; i++) {
@@ -304,14 +296,11 @@ export class MessageHandler {
         let reqType;
         if (/^dl?i?$/.test(this.command)) {
             reqType = 'normal';
-        }
-        else if (/^del?i?$/.test(this.command)) {
+        } else if (/^del?i?$/.test(this.command)) {
             reqType = 'extended';
-        }
-        else if (/^dbl?i?$/.test(this.command)) {
+        } else if (/^dbl?i?$/.test(this.command)) {
             reqType = 'basic';
-        }
-        else if (this.user.settings.readingMode) reqType = 'normal';
+        } else if (this.user.settings.readingMode) reqType = 'normal';
         const word: Word = await this.toWord(rawWord, reqType);
 
         let finalWord;
@@ -319,14 +308,12 @@ export class MessageHandler {
             finalWord = word.finalized(0, 0,
                 this.user.settings.senLimit,
                 this.user.settings.senCharLimit);
-        }
-        else finalWord = await this.finalizeWord(word);
+        } else finalWord = await this.finalizeWord(word);
 
         if (/^d[eb]?l?i$/.test(this.command)) {
             const card = toCard(finalWord);
             await this.sendImage(word.text, card.Back);
-        }
-        else {
+        } else {
             await this.sendLongString(toString(finalWord));
         }
     }
@@ -335,11 +322,9 @@ export class MessageHandler {
         let card = await (await this.user.getDB()).find(rawWord);
         if (!card) {
             await this.send(`"${rawWord}" not found!`);
-        }
-        else if (card.Back === '') {
+        } else if (card.Back === '') {
             await this.send(`"${rawWord}" is found but has empty definition.`);
-        }
-        else {
+        } else {
             await this.sendImage(rawWord, card.Back);
         }
     }
@@ -358,8 +343,7 @@ export class MessageHandler {
                 let toAdd = list[counter] + ',, ';
                 if (msg.length + toAdd.length < 1997) {
                     msg += toAdd;
-                }
-                else break;
+                } else break;
             }
 
             if (counter === list.length) msg = msg.slice(0, msg.length - 3);
@@ -400,14 +384,11 @@ export class MessageHandler {
             let reqType;
             if (/^wf?l?$/.test(this.command)) {
                 reqType = 'normal';
-            }
-            else if (/^wf?el?$/.test(this.command)) {
+            } else if (/^wf?el?$/.test(this.command)) {
                 reqType = 'extended';
-            }
-            else if (/^wf?bl?$/.test(this.command)) {
+            } else if (/^wf?bl?$/.test(this.command)) {
                 reqType = 'basic';
-            }
-            else if (this.user.settings.readingMode) reqType = 'normal';
+            } else if (this.user.settings.readingMode) reqType = 'normal';
 
             const word: Word = await this.toWord(rawWord, reqType);
 
@@ -421,8 +402,7 @@ export class MessageHandler {
                 finalWord = word.finalized(mindex, tindex,
                     this.user.settings.senLimit,
                     this.user.settings.senCharLimit);
-            }
-            else finalWord = await this.finalizeWord(word);
+            } else finalWord = await this.finalizeWord(word);
 
             if (manualSens.length > 0) {
                 manualSens = manualSens.map(
@@ -438,13 +418,11 @@ export class MessageHandler {
             if (match) {
                 await db.update(card);
                 await this.send(`Back updated for "${card.Front}".`);
-            }
-            else {
+            } else {
                 await db.add(card);
                 await this.send(`"${card.Front}" added successfully!`);
             }
-        }
-        else {
+        } else {
             await this.send(`"${match.Front}" already exists!`);
         }
     }
@@ -465,13 +443,11 @@ export class MessageHandler {
             if (match) {
                 await db.update(card);
                 await this.send(`Back updated for "${Front}"`);
-            }
-            else {
+            } else {
                 await db.add(card);
                 await this.send(`"${card.Front}" added successfully!`);
             }
-        }
-        else {
+        } else {
             await this.send(`"${match.Front}" already exists!`);
         }
     }
@@ -497,8 +473,7 @@ export class MessageHandler {
                 _.merge(this.user.settings, newSettings);
                 await this.send('Settings updated.');
                 await this.printSettings();
-            }
-            else {
+            } else {
                 await this.send(invalidSettings);
             }
         } catch (e) {

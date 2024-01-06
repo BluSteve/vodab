@@ -13,6 +13,8 @@
 `cs <new settings in json format>` Change settings
 <br/><br/>
 
+`fw <word>` Find word in Anki
+
 `lw` List word
 
 `downw` Download words in Anki format
