@@ -23,25 +23,21 @@ export class UserSettings {
     basicReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
         [Wordnik.getInstance(), WordInfo.sens],
-        [GoogleTranslate.getInstance(Language.en, this.toLanguage),
-            WordInfo.trans]
+        [GoogleTranslate.getInstance(Language.en, this.toLanguage), WordInfo.trans]
     ];
     normalReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
         [MerriamWebster.getInstance(), WordInfo.meaning - WordInfo.ipa],
         [Wordnik.getInstance(), WordInfo.sens],
-        [Linguee.getInstance(Language.en, this.toLanguage),
-            WordInfo.translation]
+        [Linguee.getInstance(Language.en, this.toLanguage), WordInfo.translation]
     ];
     extendedReq: ServiceRequest[] = [
         [FreeDictionaryAPI.getInstance(), WordInfo.meaning],
         [MerriamWebster.getInstance(), WordInfo.meaning - WordInfo.ipa],
         [Wordnik.getInstance(), WordInfo.def + WordInfo.pos + WordInfo.sens],
         [Linguee.getInstance(Language.en, Language.fr), WordInfo.sens],
-        [GoogleTranslate.getInstance(Language.en, this.toLanguage),
-            WordInfo.trans],
-        [Linguee.getInstance(Language.en, this.toLanguage),
-            WordInfo.translation]
+        [GoogleTranslate.getInstance(Language.en, this.toLanguage), WordInfo.trans],
+        [Linguee.getInstance(Language.en, this.toLanguage), WordInfo.translation]
     ];
 }
 

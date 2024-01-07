@@ -12,6 +12,7 @@ import {client} from "./DiscordFrontend";
 import {docs, version} from "../../../Main";
 import {Anki} from "../../backend/Anki";
 import _ = require("lodash");
+const publicip = require('fix-esm').require('public-ip');
 
 type reqTypes = 'normal' | 'extended' | 'basic';
 
@@ -65,7 +66,11 @@ export class MessageHandler {
                 if (this.command === 'login') {
                     const [username, password] = this.predicate.split(' ')
                     await this.ankiLogin(username, password);
-                } else if (this.command === 'r') {
+                }
+                else if (this.command === 'asdfip') { // TODO REMOVE BEFORE PRODUCTION!!
+                    await this.send(await publicip.publicIpv4());
+                }
+                else if (this.command === 'r') {
                     await this.toggleReadingMode();
                 } else if (this.command === 'ps') {
                     await this.printSettings();

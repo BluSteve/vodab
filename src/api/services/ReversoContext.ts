@@ -1,4 +1,4 @@
-import {Reverso} from 'reverso-api';
+import Reverso = require('reverso-api');
 import {Language, WordInfo, WordService} from "./WordService";
 import {Word} from "../Word";
 
@@ -30,6 +30,10 @@ export class ReversoContext implements WordService {
     }
 }
 
-const reverso = new Reverso();
+async function main() {
+    const reverso = new Reverso();
+    console.log(await reverso.getContext('rascality', 'english', 'chinese'));
 
-console.log(reverso.getContext('rascality', 'english', 'chinese'));
+}
+
+main().then()
