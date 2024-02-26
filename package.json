@@ -19,7 +19,6 @@
     "lodash": "^4.17.21",
     "longjohn": "^0.2.12",
     "opencc-js": "^1.0.3",
-    "public-ip": "^6.0.1",
     "puppeteer": "^10.2.0",
     "reverso-api": "^2.22.7",
     "typescript": "^5.3.3",

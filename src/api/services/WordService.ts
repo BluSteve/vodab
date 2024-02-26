@@ -67,7 +67,7 @@ export enum POS {
 }
 
 export function getValidInfo(ws: WordService, infoWanted: number,
-                             word?: Word): number {
+                             word?: Word): number { // todo make this return void
     if ((infoWanted | ws.infoAvail) !== ws.infoAvail) {
         throw new InfoError(word);
     }

@@ -42,7 +42,7 @@ export class Word {
     public possTranslations: Translation[] = [];
     public possMeanings: Meaning[] = [];
 
-    private constructor(rawInput: string) {
+    public constructor(rawInput: string) {
         this.rawInput = rawInput;
         this.urlable = urlify(rawInput);
         this.text = rawInput; // temporary until canonalization

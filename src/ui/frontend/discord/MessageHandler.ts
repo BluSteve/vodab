@@ -11,8 +11,8 @@ import * as fs from "fs";
 import {client} from "./DiscordFrontend";
 import {docs, version} from "../../../Main";
 import {Anki} from "../../backend/Anki";
+import {RollToolsApi} from "../../../api/services/RollToolsApi";
 import _ = require("lodash");
-const publicip = require('fix-esm').require('public-ip');
 
 type reqTypes = 'normal' | 'extended' | 'basic';
 
@@ -66,11 +66,7 @@ export class MessageHandler {
                 if (this.command === 'login') {
                     const [username, password] = this.predicate.split(' ')
                     await this.ankiLogin(username, password);
-                }
-                else if (this.command === 'asdfip') { // TODO REMOVE BEFORE PRODUCTION!!
-                    await this.send(await publicip.publicIpv4());
-                }
-                else if (this.command === 'r') {
+                } else if (this.command === 'r') {
                     await this.toggleReadingMode();
                 } else if (this.command === 'ps') {
                     await this.printSettings();
@@ -94,10 +90,10 @@ export class MessageHandler {
                                 if (/^d[eb]?l?i?$/.test(this.command)) {
                                     MessageHandler.safetyCheck(rawWord);
                                     await this.defineWord(rawWord);
-                                } else if (/^wf?[eb]?l?$/.test(this.command) ||
-                                    this.user.settings.readingMode &&
+                                } else if (/^wf?[eb]?l?$/.test(this.command) || this.user.settings.readingMode &&
                                     !this.command) {
-                                    await this.addWord(rawWord);
+                                    MessageHandler.safetyCheck(rawWord);
+                                    await this.addWord(rawWord); // todo add a safety check here
                                     isDBModified = true;
                                 } else if (/^fw$/.test(this.command)) {
                                     await this.findWord(rawWord);
@@ -158,7 +154,16 @@ export class MessageHandler {
             if (infoWanted & WordInfo.translation) translationExpected = true;
         }
 
-        const word = await Word.of(rawWordInput, reqs, manualPos);
+        let word: Word;
+        // check if word is chinese. todo: this is a hack
+        if (/\p{Script=Han}/u.test(rawWordInput)) {
+            word = await Word.of(rawWordInput, [[RollToolsApi.getInstance(), WordInfo.def | WordInfo.ipa]],
+                manualPos);
+        } else {
+            word = await Word.of(rawWordInput, reqs, manualPos);
+        }
+
+        console.log(word);
 
         if (meaningExpected && word.possMeanings.length === 0)
             await this.send(`No definitions are found for "${word.rawInput}"!`);
