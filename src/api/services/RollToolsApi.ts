@@ -45,9 +45,3 @@ export class RollToolsApi implements WordService {
         }
     }
 }
-async function main() {
-    const roll = RollToolsApi.getInstance();
-    console.log(await roll.process(new Word("一"), WordInfo.def + WordInfo.ipa));
-}
-
-main().then()
