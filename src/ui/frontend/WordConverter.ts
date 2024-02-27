@@ -8,8 +8,8 @@ export function getCardFront(word: Word | FinalizedWord): string {
 }
 
 export function toCard(word: FinalizedWord): Card {
-    let Front = getCardFront(word);
-    let Back;
+    let Front: string = getCardFront(word);
+    let Back: string;
 
     const backBuilder: string[] = [];
     const beautify = require('js-beautify').html;
@@ -75,6 +75,7 @@ export function toCard(word: FinalizedWord): Card {
     }
 
     Back = beautify(backBuilder.join(DNL));
+    Back = Back.replace(/\n/g, "<br>");
 
     if (!Front) throw new Error(`Empty card for "${word.text}"!`);
     return {Front, Back};

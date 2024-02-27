@@ -92,6 +92,7 @@ export class Wordnik implements WordService {
                     word.possMeanings.push({sens});
                 }
                 else {
+                    // push sentences to each meaning, even if they didn't come from wordnik
                     for (let meaning of word.possMeanings) {
                         if (!meaning.sens) meaning.sens = [];
                         meaning.sens.push(...sens);

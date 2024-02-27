@@ -317,7 +317,9 @@ export class MessageHandler {
 
         let finalWord;
         if (/^d[eb]?li?$/.test(this.command)) {
-            finalWord = word.finalized(0, 0,
+            const mindex = word.possMeanings.length > 0 ? 0 : undefined;
+            const tindex = word.possTranslations.length > 0 ? 0 : undefined;
+            finalWord = word.finalized(mindex, tindex,
                 this.user.settings.senLimit,
                 this.user.settings.senCharLimit);
         } else finalWord = await this.finalizeWord(word);
@@ -407,8 +409,7 @@ export class MessageHandler {
             let finalWord: FinalizedWord;
 
             // I'm feeling lucky
-            if (/^wf?[eb]?l$/.test(this.command) ||
-                this.user.settings.readingMode && !this.command) {
+            if (/^wf?[eb]?l$/.test(this.command) || this.user.settings.readingMode && !this.command) {
                 const mindex = word.possMeanings.length > 0 ? 0 : undefined;
                 const tindex = word.possTranslations.length > 0 ? 0 : undefined;
                 finalWord = word.finalized(mindex, tindex,
