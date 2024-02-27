@@ -30,6 +30,8 @@ export function toCard(word: FinalizedWord): Card {
         }
     }
 
+    let senAndTransSens = [];
+
     if (meaning) {
         if (meaning.ety) backBuilder.push(meaning.ety);
 
@@ -51,7 +53,7 @@ export function toCard(word: FinalizedWord): Card {
             }
             senList += '</ul>';
 
-            backBuilder.push(senList);
+            senAndTransSens.push(senList);
         }
     }
 
@@ -70,12 +72,15 @@ export function toCard(word: FinalizedWord): Card {
             }
             table += '</table>';
 
-            backBuilder.push(table);
+            senAndTransSens.push(table);
         }
     }
 
-    Back = beautify(backBuilder.join(DNL));
-    Back = Back.replace(/\n/g, "<br>");
+    Back = backBuilder.join(DNL);
+    if (senAndTransSens.length > 0) {
+        Back += '<br>' + senAndTransSens.join('<br>');
+    }
+    Back = beautify(Back.replace(/\n/g, "<br>"));
 
     if (!Front) throw new Error(`Empty card for "${word.text}"!`);
     return {Front, Back};

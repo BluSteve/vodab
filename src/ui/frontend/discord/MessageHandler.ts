@@ -92,8 +92,8 @@ export class MessageHandler {
                                     await this.defineWord(rawWord);
                                 } else if (/^wf?[eb]?l?$/.test(this.command) || this.user.settings.readingMode &&
                                     !this.command) {
-                                    MessageHandler.safetyCheck(rawWord);
-                                    await this.addWord(rawWord); // todo add a safety check here
+                                    // safety check within method
+                                    await this.addWord(rawWord);
                                     isDBModified = true;
                                 } else if (/^fw$/.test(this.command)) {
                                     await this.findWord(rawWord);
@@ -156,7 +156,7 @@ export class MessageHandler {
 
         let word: Word;
         // check if word is chinese. todo: this is a hack
-        if (/\p{Script=Han}/u.test(rawWordInput)) {
+        if (MessageHandler.isChinese(rawWordInput)) {
             word = await Word.of(rawWordInput, [[RollToolsApi.getInstance(), WordInfo.def | WordInfo.ipa]],
                 manualPos);
         } else {
@@ -171,6 +171,10 @@ export class MessageHandler {
             await this.send(`No translations are found for "${word.rawInput}"!`);
 
         return word;
+    }
+
+    private static isChinese(rawWordInput: string) {
+        return /\p{Script=Han}/u.test(rawWordInput);
     }
 
     private async sendImage(rawWord: string, html: string): Promise<void> {
@@ -417,11 +421,18 @@ export class MessageHandler {
                     this.user.settings.senCharLimit);
             } else finalWord = await this.finalizeWord(word);
 
+            // todo chinese stopgap
+            const isChinese: boolean = MessageHandler.isChinese(finalWord.text);
+
             if (manualSens.length > 0) {
-                manualSens = manualSens.map(
-                    sen => "<b> " + sen.replace(new RegExp(finalWord.text, 'gi'), a => `<u>${a}</u>`) + " </b>");
-                manualSens.push(...finalWord.meaning.sens);
-                finalWord.meaning.sens = manualSens;
+                manualSens = manualSens.map(sen => "<b> " + sen.replace(new RegExp(finalWord.text, 'gi'),
+                        a => `<u>${a}</u>`) + " </b>");
+                if (isChinese) {
+                    finalWord.meaning.def = manualSens.join('<br><br>') + '<br><br>' + finalWord.meaning.def;
+                } else {
+                    if (finalWord.meaning.sens) manualSens.push(...finalWord.meaning.sens);
+                    finalWord.meaning.sens = manualSens;
+                }
             }
 
             console.log(finalWord)

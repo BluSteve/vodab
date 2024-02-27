@@ -5,7 +5,7 @@ const axios = require('axios').default;
 const ankiurl = 'http://localhost:8765';
 const modelName = 'Basic';
 
-export const ANKI_WORDS = 'Vodab Words';
+export const ANKI_WORDS = 'Vodab::Vodab Words';
 
 export class Anki implements CardDatabase {
     private static instances: Map<string, Anki> = new Map();
